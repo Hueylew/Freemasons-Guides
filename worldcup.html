@@ -1356,12 +1356,32 @@ const RenderLayer = {
 
     /* ── 1. Fetch ESPN squad rosters (no key, runs in parallel with BDL map) ── */
     await ESPNLayer.buildTeamMap();
-    const [t1players, t2players] = await Promise.all([
-      ESPNLayer.fetchRoster(m.team1),
-      ESPNLayer.fetchRoster(m.team2),
-    ]);
+    const espnFailed = Object.keys(STATE.espnTeamIds).length === 0;
+    const [t1players, t2players] = espnFailed
+      ? [{ _err: 'unavailable' }, { _err: 'unavailable' }]
+      : await Promise.all([
+          ESPNLayer.fetchRoster(m.team1),
+          ESPNLayer.fetchRoster(m.team2),
+        ]);
 
-    const espnHtml = ESPNLayer.renderSquadHTML(m.team1, m.team2, t1players, t2players);
+    const bothFailed = (t1players?._err && t2players?._err);
+    const isFileProtocol = location.protocol === 'file:';
+    let espnHtml;
+    if (bothFailed) {
+      const hint = isFileProtocol
+        ? `<p class="squad-source" style="margin-top:8px">
+            Squad data requires a web server.<br>
+            Try: <code>python3 -m http.server</code> then open <strong>http://localhost:8000/worldcup.html</strong>,
+            or view on <a href="https://hueylew.github.io/freemasons-guides/worldcup.html" target="_blank" style="color:#16a34a">GitHub Pages</a>.
+          </p>`
+        : `<p class="squad-source" style="margin-top:8px">Squad data temporarily unavailable — check back soon.</p>`;
+      espnHtml = `<div class="squad-grid">
+        <div class="squad-team-col"><h4>${m.team1}</h4><p class="news-placeholder">Squad data unavailable</p></div>
+        <div class="squad-team-col"><h4>${m.team2}</h4><p class="news-placeholder">Squad data unavailable</p></div>
+      </div>${hint}`;
+    } else {
+      espnHtml = ESPNLayer.renderSquadHTML(m.team1, m.team2, t1players, t2players);
+    }
     body.innerHTML = espnHtml + watchLinks;
 
     /* ── 2. Try BDL for confirmed match-day lineups (replaces squad if available) ── */
@@ -1689,8 +1709,24 @@ const AnimLayer = {
    ════════════════════════════════════════════════════════════════════ */
 const ESPNLayer = {
   BASE: 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world',
-  _mapBuilt: false,
+  PROXY: 'https://corsproxy.io/?url=',
   _buildPromise: null,
+  _useProxy: false,
+
+  /* Fetch with automatic CORS-proxy fallback + 10 s timeout */
+  async _fetch(url) {
+    const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+    if (ESPNLayer._useProxy) {
+      return withTimeout(fetch(ESPNLayer.PROXY + encodeURIComponent(url)), 10000);
+    }
+    try {
+      const r = await withTimeout(fetch(url), 8000);
+      return r;
+    } catch {
+      ESPNLayer._useProxy = true;
+      return withTimeout(fetch(ESPNLayer.PROXY + encodeURIComponent(url)), 10000);
+    }
+  },
 
   /* Map ESPN display names → our static team names */
   _normName(name) {
@@ -1715,7 +1751,7 @@ const ESPNLayer = {
     if (ESPNLayer._buildPromise) return ESPNLayer._buildPromise;
     ESPNLayer._buildPromise = (async () => {
       try {
-        const r = await fetch(`${ESPNLayer.BASE}/teams?limit=100`);
+        const r = await ESPNLayer._fetch(`${ESPNLayer.BASE}/teams?limit=100`);
         if (!r.ok) { ESPNLayer._lastErr = `ESPN teams ${r.status}`; return; }
         const j = await r.json();
         const teams = (j.sports?.[0]?.leagues?.[0]?.teams) || j.teams || [];
@@ -1733,10 +1769,10 @@ const ESPNLayer = {
   async fetchRoster(teamName) {
     if (STATE.espnRosters[teamName]) return STATE.espnRosters[teamName];
     const id = STATE.espnTeamIds[teamName];
-    if (!id) return { _err: `No ESPN ID for "${teamName}" (map has ${Object.keys(STATE.espnTeamIds).length} entries${ESPNLayer._lastErr ? '; ' + ESPNLayer._lastErr : ''})` };
+    if (!id) return { _err: `unavailable` };
     try {
-      const r = await fetch(`${ESPNLayer.BASE}/teams/${id}/roster`);
-      if (!r.ok) return { _err: `ESPN roster HTTP ${r.status}` };
+      const r = await ESPNLayer._fetch(`${ESPNLayer.BASE}/teams/${id}/roster`);
+      if (!r.ok) return { _err: `unavailable (${r.status})` };
       const j = await r.json();
       /* ESPN may return athletes directly or nested under positions */
       let raw = j.athletes || j.roster || [];
@@ -1752,10 +1788,10 @@ const ESPNLayer = {
         pos:     p.position?.abbreviation || p.position?.displayName || p._posGroup || '',
         posLong: p.position?.displayName || p._posGroup || '',
       })).filter(p => p.name);
-      if (!players.length) return { _err: `ESPN returned 0 players (keys: ${Object.keys(j).join(',')})` };
+      if (!players.length) return { _err: `unavailable` };
       STATE.espnRosters[teamName] = players;
       return players;
-    } catch (e) { return { _err: String(e) }; }
+    } catch { return { _err: `unavailable` }; }
   },
 
   /* Render a two-column squad grid for team1 and team2 */
@@ -1770,10 +1806,9 @@ const ESPNLayer = {
 
     const col = (teamName, players) => {
       if (!players || players._err || !players.length) {
-        const msg = players?._err || 'Squad not available';
         return `<div class="squad-team-col">
           <h4>${teamName}</h4>
-          <p class="news-placeholder" style="font-size:10px;word-break:break-all">${msg}</p>
+          <p class="news-placeholder">Squad data loading…</p>
         </div>`;
       }
       /* Group by position */
