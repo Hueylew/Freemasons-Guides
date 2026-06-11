@@ -11,7 +11,39 @@
   </script>
   <style>
     * { box-sizing: border-box; }
-    body { background: #030712; }
+
+    /* ── Base — explicit so Tailwind CDN failure doesn't break layout ── */
+    body {
+      background: #030712; color: #fff;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh; margin: 0;
+    }
+
+    /* ── Hero layout ─────────────────────────────────────────── */
+    .hero-inner {
+      max-width: 80rem; margin: 0 auto; padding: 2rem 1rem 0;
+      display: flex; flex-wrap: wrap; align-items: center;
+      justify-content: space-between; gap: 1.25rem;
+    }
+    .hero-title-wrap { display: flex; align-items: center; gap: 1rem; }
+    .hero-title  { font-size: 2.25rem; font-weight: 900; line-height: 1; color: #fff; letter-spacing: -.02em; }
+    .hero-sub    { color: #4ade80; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-top: 6px; }
+    .hero-meta   { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; padding-bottom: 4px; }
+    .progress-wrap { width: 14rem; }
+    .progress-labels { display: flex; justify-content: space-between; font-size: .625rem; color: #6b7280; margin-bottom: 4px; }
+    .progress-track  { height: 6px; background: #1f2937; border-radius: 9999px; overflow: hidden; }
+
+    /* ── Sticky tab nav ──────────────────────────────────────── */
+    #nav-wrap {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(3,7,18,.95); backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(22,163,74,.25);
+    }
+    #nav-tabs {
+      max-width: 80rem; margin: 0 auto;
+      padding: 10px 1rem;
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
 
     /* ── Animations ─────────────────────────────────────────── */
     @keyframes live-pulse {
@@ -80,6 +112,7 @@
     .b-team.winner { font-weight:800; color:#f59e0b; }
     .b-team .b-flag { font-size:14px; line-height:1; }
     .b-team .b-name { flex:1; color:#e5e7eb; font-size:11px; }
+    .b-team .b-name.b-tbd { color:#4b5563; font-style:italic; font-size:10px; }
     .b-team.winner .b-name { color:#f59e0b; }
     .b-team .b-score { font-weight:700; font-size:12px; color:#9ca3af; min-width:14px; text-align:right; }
     .b-team.winner .b-score { color:#f59e0b; }
@@ -104,6 +137,48 @@
       padding:10px 14px; transition:border-color .2s; }
     .scorer-row:hover { border-color:#374151; }
 
+    /* ── Main layout ─────────────────────────────────────────── */
+    main { max-width: 80rem; margin: 0 auto; padding: 2rem 1rem; }
+
+    /* ── Group grid ──────────────────────────────────────────── */
+    #groups-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    @media (min-width:640px)  { #groups-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (min-width:1024px) { #groups-grid { grid-template-columns: repeat(3,1fr); } }
+    @media (min-width:1280px) { #groups-grid { grid-template-columns: repeat(4,1fr); } }
+
+    /* ── Group card explicit styles ──────────────────────────── */
+    .group-card { background:#111827; border:1px solid #374151; border-radius:12px; overflow:hidden; }
+    .group-card table { width:100%; border-collapse:collapse; }
+    .group-card th { font-size:10px; color:#4b5563; text-transform:uppercase; padding:8px 4px; text-align:center; }
+    .group-card th:nth-child(2) { text-align:left; padding-left:8px; }
+    .group-card .gcard-hdr {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 16px; background:rgba(31,41,55,.5); border-bottom:1px solid rgba(55,65,81,.5);
+    }
+    .group-card .gcard-hdr span:first-child { font-weight:900; font-size:1rem; color:#fff; }
+    .std-row td { font-size:11px; color:#9ca3af; padding:10px 4px; text-align:center; border-bottom:1px solid rgba(31,41,55,.4); }
+    .std-row td:first-child { padding-left:12px; font-family:monospace; font-size:10px; }
+    .std-row td:nth-child(2) { text-align:left; padding-left:8px; }
+    .std-row td:last-child   { font-weight:900; font-size:14px; color:#fff; padding-right:8px; }
+    .flag-name-wrap { display:flex; align-items:center; gap:6px; }
+
+    /* ── Today grid ──────────────────────────────────────────── */
+    #today-matches { display:grid; grid-template-columns:1fr; gap:1rem; }
+    @media (min-width:768px)  { #today-matches { grid-template-columns: repeat(2,1fr); } }
+    @media (min-width:1280px) { #today-matches { grid-template-columns: repeat(3,1fr); } }
+    .match-card { background:#111827; border:1px solid #374151; border-radius:12px; overflow:hidden; }
+
+    /* ── Match card inner layout ─────────────────────────────── */
+    .mc-meta { display:flex; justify-content:space-between; align-items:center; padding:12px 16px 4px; }
+    .mc-meta span:first-child { font-size:10px; color:#4b5563; font-family:monospace; }
+    .mc-score-row { display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 16px 16px; }
+    .mc-team { display:flex; align-items:center; gap:6px; flex:1; }
+    .mc-team.left  { justify-content:flex-end; }
+    .mc-team.right { justify-content:flex-start; }
+    .mc-team span.name { font-weight:600; font-size:13px; color:#e5e7eb; line-height:1.2; }
+    .mc-team span.flag { font-size:20px; line-height:1; }
+    .mc-score { font-weight:900; font-size:24px; color:#fff; min-width:4.5rem; text-align:center; font-variant-numeric:tabular-nums; }
+
     /* ── Mobile tweaks ──────────────────────────────────────── */
     @media (max-width:380px) {
       .col-gd, .col-ga, .col-gf { display:none; }
@@ -114,61 +189,86 @@
       background: radial-gradient(ellipse at 20% 50%, rgba(22,163,74,.12) 0%, transparent 60%),
                   radial-gradient(ellipse at 80% 20%, rgba(245,158,11,.07) 0%, transparent 55%),
                   #030712;
-      border-bottom:1px solid rgba(22,163,74,.2);
     }
+
+    /* ── Live badge ──────────────────────────────────────────── */
+    #live-badge { display:none; align-items:center; gap:8px; background:rgba(127,29,29,.3); border:1px solid rgba(185,28,28,.4); border-radius:9999px; padding:6px 16px; }
+    #live-badge.show { display:flex; }
+    #live-badge span.lbl { color:#f87171; font-weight:900; font-size:11px; letter-spacing:.12em; }
+
+    /* ── Today empty state ───────────────────────────────────── */
+    #today-empty { text-align:center; padding:5rem 0; color:#4b5563; }
+    #today-empty p:first-of-type { font-size:1.125rem; font-weight:600; }
+    #today-empty p:last-of-type  { font-size:.875rem; margin-top:8px; }
+
+    /* ── Scorers ─────────────────────────────────────────────── */
+    #scorers-list { max-width: 32rem; margin: 0 auto; display:flex; flex-direction:column; gap:8px; }
+
+    /* ── Tailwind fallback: .hidden utility ─────────────────── */
+    .hidden { display: none !important; }
+
+    /* ── Status badge (explicit, no Tailwind needed) ────────── */
+    .status-badge { display:inline-block; font-size:10px; font-weight:700;
+      padding:2px 8px; border-radius:9999px; }
+
+    /* ── UK broadcaster badge ────────────────────────────────── */
+    .uk-broadcast { display:inline-block; font-size:9px; color:#93c5fd;
+      background:rgba(30,58,138,0.25); border:1px solid rgba(59,130,246,0.25);
+      padding:1px 6px; border-radius:9999px; white-space:nowrap; }
+
+    /* ── Today date + footer rows ───────────────────────────── */
+    #today-date { color:#9ca3af; font-size:.875rem; margin-bottom:1.25rem; }
+    .mc-footer  { padding:0 16px 12px; display:flex; align-items:center; justify-content:space-between; }
+    .mc-footer-venue { font-size:9px; color:#4b5563; }
   </style>
 </head>
-<body class="text-white min-h-screen font-sans">
+<body>
 
 <canvas id="particle-canvas"></canvas>
 
 <!-- ═══════════════ HERO ═══════════════ -->
 <header class="hero-bg">
-  <div class="max-w-7xl mx-auto px-4 pt-8 pb-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-
-    <div class="flex items-center gap-4">
-      <div class="text-5xl select-none">⚽</div>
+  <div class="hero-inner">
+    <div class="hero-title-wrap">
+      <div style="font-size:3rem;line-height:1;user-select:none">⚽</div>
       <div>
-        <h1 id="hero-title" class="text-4xl font-black tracking-tight leading-none">World Cup 2026</h1>
-        <p class="text-green-400 text-xs font-semibold uppercase tracking-widest mt-1.5">
-          USA · Canada · Mexico &nbsp;·&nbsp; Jun 11 – Jul 19
-        </p>
+        <h1 id="hero-title" class="hero-title">World Cup 2026</h1>
+        <p class="hero-sub">USA · Canada · Mexico &nbsp;·&nbsp; Jun 11 – Jul 19</p>
       </div>
     </div>
 
-    <div class="flex flex-col items-start md:items-end gap-2.5 pb-1">
+    <div class="hero-meta">
       <!-- LIVE badge -->
-      <div id="live-badge" class="hidden items-center gap-2 bg-red-900/30 border border-red-700/40 rounded-full px-4 py-1.5">
-        <span class="w-2 h-2 rounded-full bg-red-500 live-pulse"></span>
-        <span class="text-red-400 font-black text-xs tracking-widest">LIVE</span>
+      <div id="live-badge">
+        <span class="w-2 h-2 rounded-full bg-red-500 live-pulse" style="width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0"></span>
+        <span class="lbl">LIVE</span>
       </div>
 
       <!-- Progress -->
-      <div class="w-56">
-        <div class="flex justify-between text-[10px] text-gray-500 mb-1">
-          <span>Group Stage</span><span>Final</span>
+      <div class="progress-wrap">
+        <div class="progress-labels"><span>Group Stage</span><span>Final</span></div>
+        <div class="progress-track">
+          <div id="progress-bar" style="height:100%;background:linear-gradient(90deg,#16a34a,#34d399);border-radius:9999px;width:0%;transition:width 1s ease"></div>
         </div>
-        <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-          <div id="progress-bar" class="h-full bg-gradient-to-r from-green-600 to-emerald-400 rounded-full transition-[width] duration-1000" style="width:0%"></div>
-        </div>
-        <p id="progress-label" class="text-[10px] text-gray-600 mt-1 text-right">Starts Jun 11</p>
+        <p id="progress-label" style="font-size:.625rem;color:#4b5563;margin-top:4px;text-align:right">Starts Jun 11</p>
       </div>
 
-      <!-- Last updated -->
-      <p id="last-updated" class="text-[10px] text-gray-700">Loading data…</p>
+      <p id="last-updated" style="font-size:.625rem;color:#374151">Loading data…</p>
     </div>
   </div>
+</header>
 
-  <!-- Tab nav -->
-  <nav id="nav-tabs" class="max-w-7xl mx-auto px-4 pt-4 pb-0 flex gap-1.5 flex-wrap border-b border-gray-800/60 pb-4">
+<!-- Sticky tab nav — outside header so it sticks properly -->
+<div id="nav-wrap">
+  <nav id="nav-tabs">
     <button class="nav-tab active" data-section="groups">Groups</button>
     <button class="nav-tab" data-section="today">Today</button>
     <button class="nav-tab" data-section="bracket">Bracket</button>
     <button class="nav-tab" data-section="scorers">Top Scorers</button>
   </nav>
-</header>
+</div>
 
-<main class="max-w-7xl mx-auto px-4 py-8">
+<main>
 
   <!-- ═══ GROUPS ═══ -->
   <section id="groups" class="section-panel active">
@@ -182,7 +282,7 @@
     <h2 class="sec-head">Today's Matches</h2>
     <p id="today-date" class="text-gray-400 text-sm mb-5"></p>
     <div id="today-matches" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
-    <div id="today-empty" class="hidden text-center py-20 text-gray-600">
+    <div id="today-empty" style="display:none">
       <div class="text-5xl mb-4">📅</div>
       <p class="text-lg font-semibold">No matches today</p>
       <p class="text-sm mt-2">Check back on match days</p>
@@ -461,6 +561,21 @@ const DataLayer = {
     return DataLayer.ALIASES[name] || name;
   },
 
+  matchToUKTime(m) {
+    // All matches fall during BST (UTC+1, Jun 11 – Jul 19)
+    const utcMs = DataLayer.matchToUTC(m);
+    const bstMs = utcMs + 3_600_000;
+    const d     = new Date(bstMs);
+    const hh    = String(d.getUTCHours()).padStart(2, '0');
+    const mm    = String(d.getUTCMinutes()).padStart(2, '0');
+    const bstDateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+    if (bstDateStr !== m.date) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return `${hh}:${mm} BST (${d.getUTCDate()} ${months[d.getUTCMonth()]})`;
+    }
+    return `${hh}:${mm} BST`;
+  },
+
   matchToUTC(m) {
     const [h, min] = m.time.split(':').map(Number);
     const d = new Date(m.date + 'T00:00:00Z');
@@ -635,26 +750,23 @@ const RenderLayer = {
     grid.innerHTML = '';
     Object.keys(STATIC_DATA.groups).forEach(letter => {
       const card = document.createElement('div');
-      card.className = 'group-card rounded-xl border border-gray-800 bg-gray-900 overflow-hidden anim-in';
+      card.className = 'group-card anim-in';
       card.dataset.group = letter;
       card.innerHTML = `
-        <div class="flex items-center justify-between px-4 py-3 bg-gray-800/50 border-b border-gray-700/50">
-          <span class="font-black text-white text-base tracking-wide">Group ${letter}</span>
-          <span id="gcard-${letter}-played" class="text-[10px] text-gray-500 font-mono"></span>
+        <div class="gcard-hdr">
+          <span>Group ${letter}</span>
+          <span id="gcard-${letter}-played" style="font-size:10px;color:#6b7280;font-family:monospace"></span>
         </div>
-        <table class="w-full text-xs">
+        <table>
           <thead>
-            <tr class="text-gray-600 uppercase tracking-wider text-[10px]">
-              <th class="text-left py-2 px-3 w-5">#</th>
-              <th class="text-left py-2 px-2">Team</th>
-              <th class="py-2 px-1 w-6 text-center">P</th>
-              <th class="py-2 px-1 w-6 text-center">W</th>
-              <th class="py-2 px-1 w-6 text-center">D</th>
-              <th class="py-2 px-1 w-6 text-center">L</th>
-              <th class="py-2 px-1 w-7 text-center col-gf">GF</th>
-              <th class="py-2 px-1 w-7 text-center col-ga">GA</th>
-              <th class="py-2 px-1 w-7 text-center col-gd">GD</th>
-              <th class="py-2 px-2 w-8 text-center text-green-500">Pts</th>
+            <tr>
+              <th style="text-align:left">#</th>
+              <th style="text-align:left">Team</th>
+              <th>P</th><th>W</th><th>D</th><th>L</th>
+              <th class="col-gf">GF</th>
+              <th class="col-ga">GA</th>
+              <th class="col-gd">GD</th>
+              <th style="color:#22c55e">Pts</th>
             </tr>
           </thead>
           <tbody id="tbody-${letter}"></tbody>
@@ -676,23 +788,23 @@ const RenderLayer = {
       const team = STATIC_DATA.teams[row.team] || { flag: '🏳', color: '#555' };
       const qual = i < 2;
       const gd = row.gd > 0 ? '+' + row.gd : String(row.gd);
-      const gdCls = row.gd > 0 ? 'text-green-400' : row.gd < 0 ? 'text-red-400' : 'text-gray-500';
-      return `<tr class="std-row ${qual ? 'qual-row' : ''} border-b border-gray-800/40 hover:bg-gray-800/20 transition-colors" data-team="${row.team}">
-        <td class="py-2.5 px-3 text-gray-500 font-mono text-[10px]">${i + 1}</td>
-        <td class="py-2.5 px-2">
-          <div class="flex items-center gap-1.5">
-            <span class="text-sm leading-none">${team.flag}</span>
-            <span class="font-semibold text-gray-200 text-[11px]">${row.team}</span>
+      const gdColor = row.gd > 0 ? '#4ade80' : row.gd < 0 ? '#f87171' : '#6b7280';
+      return `<tr class="std-row${qual ? ' qual-row' : ''}" data-team="${row.team}">
+        <td>${i + 1}</td>
+        <td>
+          <div class="flag-name-wrap">
+            <span>${team.flag}</span>
+            <span>${row.team}</span>
           </div>
         </td>
-        <td class="py-2.5 px-1 text-center text-gray-400 text-[11px]">${row.p}</td>
-        <td class="py-2.5 px-1 text-center text-gray-400 text-[11px]">${row.w}</td>
-        <td class="py-2.5 px-1 text-center text-gray-400 text-[11px]">${row.d}</td>
-        <td class="py-2.5 px-1 text-center text-gray-400 text-[11px]">${row.l}</td>
-        <td class="py-2.5 px-1 text-center text-gray-400 text-[11px] col-gf">${row.gf}</td>
-        <td class="py-2.5 px-1 text-center text-gray-400 text-[11px] col-ga">${row.ga}</td>
-        <td class="py-2.5 px-1 text-center text-[11px] col-gd ${gdCls}">${gd}</td>
-        <td class="py-2.5 px-2 text-center font-black text-white text-sm">${row.pts}</td>
+        <td>${row.p}</td>
+        <td>${row.w}</td>
+        <td>${row.d}</td>
+        <td>${row.l}</td>
+        <td class="col-gf">${row.gf}</td>
+        <td class="col-ga">${row.ga}</td>
+        <td class="col-gd" style="color:${gdColor}">${gd}</td>
+        <td>${row.pts}</td>
       </tr>`;
     }).join('');
   },
@@ -719,44 +831,49 @@ const RenderLayer = {
       new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
     if (!matches.length) {
-      container.classList.add('hidden');
-      empty.classList.remove('hidden');
+      container.style.display = 'none';
+      empty.style.display = 'block';
       return;
     }
-    empty.classList.add('hidden');
-    container.classList.remove('hidden');
+    empty.style.display = 'none';
+    container.style.display = '';
     container.innerHTML = matches.map(m => RenderLayer.matchCardHTML(m)).join('');
   },
 
   matchCardHTML(m) {
-    const sc     = STATE.scores[m.id];
-    const t1     = STATIC_DATA.teams[m.team1] || { flag:'🏳', color:'#444' };
-    const t2     = STATIC_DATA.teams[m.team2] || { flag:'🏳', color:'#444' };
-    const status = DataLayer.getStatus(m);
-    const label  = { NS: m.time, LIVE:'LIVE', HT:'HT', FT:'FT' }[status] || m.time;
-    const sBadge = `s-${status.toLowerCase()}`;
-    const liveClass = status === 'LIVE' ? 'card-live' : '';
-    const ctx    = m.group ? `Group ${m.group}` : m.round;
+    const sc        = STATE.scores[m.id];
+    const t1        = STATIC_DATA.teams[m.team1] || { flag:'🏳', color:'#444', alt:'#444' };
+    const t2        = STATIC_DATA.teams[m.team2] || { flag:'🏳', color:'#444', alt:'#444' };
+    const status    = DataLayer.getStatus(m);
+    const ukTime    = DataLayer.matchToUKTime(m);
+    const label     = { NS: ukTime, LIVE:'LIVE', HT:'HT', FT:'FT' }[status] || ukTime;
+    const sBadge    = `s-${status.toLowerCase()}`;
+    const liveClass = status === 'LIVE' ? ' card-live' : '';
+    const ctx       = m.group ? `Group ${m.group}` : m.round;
     const scoreHtml = sc
-      ? `<span class="score-t1">${sc.s1}</span><span class="text-gray-700 mx-1">:</span><span class="score-t2">${sc.s2}</span>`
-      : `<span class="text-gray-700">–:–</span>`;
+      ? `<span class="score-t1">${sc.s1}</span><span style="color:#374151;margin:0 4px">:</span><span class="score-t2">${sc.s2}</span>`
+      : `<span style="color:#374151">–:–</span>`;
 
-    return `<div class="match-card relative overflow-hidden rounded-xl border border-gray-800 bg-gray-900 ${liveClass} anim-in" data-mid="${m.id}">
-      <div class="h-1 w-full" style="background:linear-gradient(90deg,${t1.color} 50%,${t2.color} 50%)"></div>
-      <div class="px-4 pt-3 pb-1 flex justify-between items-center">
-        <span class="text-[10px] text-gray-600 font-mono">${ctx} · ${m.ground}</span>
-        <span class="status-badge ${sBadge} text-[10px] font-bold px-2 py-0.5 rounded-full">${label}</span>
+    return `<div class="match-card${liveClass} anim-in" data-mid="${m.id}">
+      <div style="height:4px;background:linear-gradient(90deg,${t1.color} 50%,${t2.color} 50%)"></div>
+      <div class="mc-meta">
+        <span style="font-size:10px;color:#4b5563;font-family:monospace">${ctx}</span>
+        <span class="status-badge ${sBadge}">${label}</span>
       </div>
-      <div class="px-4 pb-4 pt-2 flex items-center justify-center gap-2">
-        <div class="flex items-center gap-1.5 flex-1 justify-end">
-          <span class="font-semibold text-sm text-right leading-tight text-gray-200">${m.team1}</span>
-          <span class="text-xl leading-none">${t1.flag}</span>
+      <div class="mc-score-row">
+        <div class="mc-team left">
+          <span class="name">${m.team1}</span>
+          <span class="flag">${t1.flag}</span>
         </div>
-        <div id="sc-${m.id}" class="font-black text-2xl text-white min-w-[4.5rem] text-center tabular-nums">${scoreHtml}</div>
-        <div class="flex items-center gap-1.5 flex-1 justify-start">
-          <span class="text-xl leading-none">${t2.flag}</span>
-          <span class="font-semibold text-sm leading-tight text-gray-200">${m.team2}</span>
+        <div id="sc-${m.id}" class="mc-score">${scoreHtml}</div>
+        <div class="mc-team right">
+          <span class="flag">${t2.flag}</span>
+          <span class="name">${m.team2}</span>
         </div>
+      </div>
+      <div class="mc-footer">
+        <span class="mc-footer-venue">${m.ground}</span>
+        <span class="uk-broadcast">📺 BBC / ITV</span>
       </div>
     </div>`;
   },
@@ -775,7 +892,7 @@ const RenderLayer = {
       if (sc) {
         if (t1El === null) {
           // Was showing –:–, now has a score — re-render
-          el.innerHTML = `<span class="score-t1">${sc.s1}</span><span class="text-gray-700 mx-1">:</span><span class="score-t2">${sc.s2}</span>`;
+          el.innerHTML = `<span class="score-t1">${sc.s1}</span><span style="color:#374151;margin:0 4px">:</span><span class="score-t2">${sc.s2}</span>`;
         } else if (sc.s1 !== prev1 || sc.s2 !== prev2) {
           AnimLayer.animateGoal(m.id, prev1 || 0, prev2 || 0, sc.s1, sc.s2);
         }
@@ -783,7 +900,7 @@ const RenderLayer = {
         const badge  = document.querySelector(`[data-mid="${m.id}"] .status-badge`);
         const status = sc.status;
         if (badge) {
-          badge.className = `status-badge s-${status.toLowerCase()} text-[10px] font-bold px-2 py-0.5 rounded-full`;
+          badge.className = `status-badge s-${status.toLowerCase()}`;
           badge.textContent = { FT:'FT', LIVE:'LIVE', HT:'HT' }[status] || status;
         }
         // Live card glow
@@ -797,18 +914,17 @@ const RenderLayer = {
     const today = DataLayer.getTodayMatches();
     STATE.isLive = today.some(m => DataLayer.getStatus(m) === 'LIVE');
     const badge = document.getElementById('live-badge');
-    badge.classList.toggle('hidden', !STATE.isLive);
-    badge.classList.toggle('flex',   STATE.isLive);
+    if (badge) badge.classList.toggle('show', STATE.isLive);
   },
 
   updateLastUpdated() {
     const el = document.getElementById('last-updated');
     if (STATE.fetchError) {
       el.textContent = '⚠ Using offline data';
-      el.className = 'text-[10px] text-yellow-700';
+      el.style.color = '#a16207';
     } else if (STATE.lastUpdated) {
       el.textContent = 'Updated ' + STATE.lastUpdated.toLocaleTimeString();
-      el.className = 'text-[10px] text-gray-700';
+      el.style.color = '#374151';
     }
   },
 
@@ -906,15 +1022,15 @@ const BracketRender = {
         if (t1) slot.style.borderLeftColor = t1.color;
 
         slot.innerHTML = `
-          <div class="b-team ${winner === t1name && winner ? 'winner' : ''}">
+          <div class="b-team${winner === t1name && winner ? ' winner' : ''}">
             <span class="b-flag">${t1 ? t1.flag : '🏳'}</span>
-            <span class="b-name ${tbd1 ? 'text-gray-600 italic text-[10px]' : ''}">${tbd1 ? t1ref : t1name}</span>
+            <span class="b-name${tbd1 ? ' b-tbd' : ''}">${tbd1 ? t1ref : t1name}</span>
             ${sc ? `<span class="b-score">${sc.s1}</span>` : ''}
           </div>
           <div class="b-divider"></div>
-          <div class="b-team ${winner === t2name && winner ? 'winner' : ''}">
+          <div class="b-team${winner === t2name && winner ? ' winner' : ''}">
             <span class="b-flag">${t2 ? t2.flag : '🏳'}</span>
-            <span class="b-name ${tbd2 ? 'text-gray-600 italic text-[10px]' : ''}">${tbd2 ? t2ref : t2name}</span>
+            <span class="b-name${tbd2 ? ' b-tbd' : ''}">${tbd2 ? t2ref : t2name}</span>
             ${sc ? `<span class="b-score">${sc.s2}</span>` : ''}
           </div>
           <div class="b-date">${match.date.slice(5)} · ${match.ground}</div>`;
@@ -950,13 +1066,13 @@ const BracketRender = {
       <div class="b-slot${tbd1 && tbd2 ? ' tbd' : ''} max-w-[200px]">
         <div class="b-team">
           <span class="b-flag">${t1 ? t1.flag : '🏳'}</span>
-          <span class="b-name ${tbd1 ? 'text-gray-600 italic text-[10px]' : ''}">${tbd1 ? m.team1 : t1name}</span>
+          <span class="b-name${tbd1 ? ' b-tbd' : ''}">${tbd1 ? m.team1 : t1name}</span>
           ${sc ? `<span class="b-score">${sc.s1}</span>` : ''}
         </div>
         <div class="b-divider"></div>
         <div class="b-team">
           <span class="b-flag">${t2 ? t2.flag : '🏳'}</span>
-          <span class="b-name ${tbd2 ? 'text-gray-600 italic text-[10px]' : ''}">${tbd2 ? m.team2 : t2name}</span>
+          <span class="b-name${tbd2 ? ' b-tbd' : ''}">${tbd2 ? m.team2 : t2name}</span>
           ${sc ? `<span class="b-score">${sc.s2}</span>` : ''}
         </div>
         <div class="b-date">${m.date.slice(5)} · ${m.ground}</div>
