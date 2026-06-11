@@ -17,11 +17,18 @@
       margin: 0;
     }
 
-    /* Button normalisation (no CSS framework is loaded) */
+    /* Button normalisation — explicit values required for Safari */
     button {
       font-family: inherit;
       font-size: 100%;
+      line-height: normal;
       margin: 0;
+      padding: 0;
+      background: transparent;
+      border: none;
+      color: inherit;
+      -webkit-text-fill-color: inherit;
+      cursor: pointer;
       -webkit-appearance: none;
       appearance: none;
     }
@@ -64,25 +71,29 @@
       display: flex; flex-wrap: wrap; gap: 6px;
     }
     button.nav-tab {
+      display: inline-block;
       padding: 8px 22px; border-radius: 99px;
       font-size: 13px; font-weight: 700;
       border: 1.5px solid #cbd5e1;
       color: #334155;
+      -webkit-text-fill-color: #334155;
       cursor: pointer;
       background: #f8fafc;
-      transition: all .18s;
+      transition: background .18s, color .18s, border-color .18s, box-shadow .18s;
       white-space: nowrap;
       line-height: 1.4;
     }
     button.nav-tab.active {
       background: #16a34a;
       color: #ffffff;
+      -webkit-text-fill-color: #ffffff;
       border-color: #16a34a;
       box-shadow: 0 2px 6px rgba(22,163,74,.35);
     }
     button.nav-tab:hover:not(.active) {
       background: #e2e8f0;
       color: #0f172a;
+      -webkit-text-fill-color: #0f172a;
       border-color: #94a3b8;
     }
 
@@ -1625,9 +1636,23 @@ const LineupLayer = {
   getKey() { try { return localStorage.getItem(LineupLayer.KEY_STORE) || ''; } catch { return ''; } },
   setKey(k) { try { localStorage.setItem(LineupLayer.KEY_STORE, k.trim()); } catch {} },
 
+  /* Rate limiter — free tier allows 5 requests per minute */
+  _reqTimes: [],
+  async _throttle() {
+    const now = Date.now();
+    LineupLayer._reqTimes = LineupLayer._reqTimes.filter(t => now - t < 60_000);
+    if (LineupLayer._reqTimes.length >= 5) {
+      const wait = 60_000 - (now - LineupLayer._reqTimes[0]) + 100;
+      await new Promise(r => setTimeout(r, wait));
+      return LineupLayer._throttle();
+    }
+    LineupLayer._reqTimes.push(Date.now());
+  },
+
   async fetchLineup(bdlMatchId) {
     const key = LineupLayer.getKey();
     if (!key || !bdlMatchId) return null;
+    await LineupLayer._throttle();
     try {
       const r = await fetch(`${LineupLayer.BASE}/match_lineups?game_id=${bdlMatchId}`, {
         headers: { Authorization: key }
