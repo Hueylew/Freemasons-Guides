@@ -832,8 +832,8 @@ const DataLayer = {
     if (sc) return sc.status;
     const now = Date.now(), start = DataLayer.matchToUTC(m);
     if (now < start - 15 * 60000) return 'NS';
-    if (now < start + 110 * 60000) return 'LIVE';
-    return 'NS';
+    if (now < start + 115 * 60000) return 'LIVE';
+    return 'FT'; // match window passed, no score yet — treat as finished
   },
 
   todayStr() { return new Date().toISOString().slice(0, 10); },
@@ -880,38 +880,45 @@ const DataLayer = {
         // Parse HT score
         const htScore = (rm.score.ht && rm.score.ht.length === 2) ? [rm.score.ht[0], rm.score.ht[1]] : null;
 
-        // Parse goals
-        const goals = [];
-        if (rm.goals && Array.isArray(rm.goals)) {
-          let prev = [0, 0];
-          rm.goals.forEach(g => {
-            const name   = g.name || g.player || '';
-            const minute = g.minute || g.min || '';
-            const og     = !!(g.owngoal || g.og);
-            const pen    = !!(g.penalty || g.pen);
-            // Determine which team scored by comparing score progression
-            const score  = g.score;
-            let team = 'team1';
-            if (score && score.length === 2) {
-              if (score[0] > prev[0]) team = 'team1';
-              else if (score[1] > prev[1]) team = 'team2';
-              // own goal reverses credit
-              if (og) team = (team === 'team1') ? 'team2' : 'team1';
-              prev = [score[0], score[1]];
-            }
-            goals.push({ player: name, minute, team, og, penalty: pen, score: score ? [...score] : null });
-          });
-        }
+        // Parse goals — openfootball uses goals1 (team1) and goals2 (team2) arrays
+        const parseGoalList = (list, teamKey) => {
+          if (!Array.isArray(list)) return [];
+          return list.map(g => ({
+            player:  g.name || g.player || '',
+            minute:  g.minute || g.min || '',
+            team:    teamKey,
+            og:      !!(g.owngoal || g.og),
+            penalty: !!(g.penalty || g.pen),
+          }));
+        };
+        const goals = [
+          ...parseGoalList(rm.goals1, 'team1'),
+          ...parseGoalList(rm.goals2, 'team2'),
+        ].sort((a, b) => (Number(a.minute) || 0) - (Number(b.minute) || 0));
 
         STATE.events[match.id] = { goals, htScore };
       });
 
-      // Scorers
-      if (json.scorers) {
-        STATE.scorers = json.scorers.map(s => ({
-          name: s.name, team: DataLayer.norm(s.team || ''), goals: s.goals || 0
-        })).sort((a, b) => b.goals - a.goals);
-      }
+      // Compute scorers from goals across all scored matches
+      // (openfootball has no top-level scorers field — derive from goals1/goals2)
+      const scorerMap = {};
+      raw.forEach(rm => {
+        if (!rm.score) return;
+        const t1name = DataLayer.norm(rm.team1 && rm.team1.name ? rm.team1.name : rm.team1);
+        const t2name = DataLayer.norm(rm.team2 && rm.team2.name ? rm.team2.name : rm.team2);
+        const count = (list, teamName) => {
+          if (!Array.isArray(list)) return;
+          for (const g of list) {
+            if (!g.name || g.owngoal || g.og) continue;
+            const key = g.name + '|' + teamName;
+            if (!scorerMap[key]) scorerMap[key] = { name: g.name, team: teamName, goals: 0 };
+            scorerMap[key].goals++;
+          }
+        };
+        count(rm.goals1, t1name);
+        count(rm.goals2, t2name);
+      });
+      STATE.scorers = Object.values(scorerMap).sort((a, b) => b.goals - a.goals);
 
       STATE.lastUpdated = new Date();
       STATE.fetchError  = false;
@@ -1365,20 +1372,13 @@ const RenderLayer = {
         ]);
 
     const bothFailed = (t1players?._err && t2players?._err);
-    const isFileProtocol = location.protocol === 'file:';
     let espnHtml;
     if (bothFailed) {
-      const hint = isFileProtocol
-        ? `<p class="squad-source" style="margin-top:8px">
-            Squad data requires a web server.<br>
-            Try: <code>python3 -m http.server</code> then open <strong>http://localhost:8000/worldcup.html</strong>,
-            or view on <a href="https://hueylew.github.io/freemasons-guides/worldcup.html" target="_blank" style="color:#16a34a">GitHub Pages</a>.
-          </p>`
-        : `<p class="squad-source" style="margin-top:8px">Squad data temporarily unavailable — check back soon.</p>`;
       espnHtml = `<div class="squad-grid">
-        <div class="squad-team-col"><h4>${m.team1}</h4><p class="news-placeholder">Squad data unavailable</p></div>
-        <div class="squad-team-col"><h4>${m.team2}</h4><p class="news-placeholder">Squad data unavailable</p></div>
-      </div>${hint}`;
+        <div class="squad-team-col"><h4>${m.team1}</h4><p class="news-placeholder">Squad data temporarily unavailable</p></div>
+        <div class="squad-team-col"><h4>${m.team2}</h4><p class="news-placeholder">Squad data temporarily unavailable</p></div>
+      </div>
+      <p class="squad-source" style="margin-top:8px">Squad data via ESPN (via allorigins proxy) · Lineups announced ~1h before kick-off</p>`;
     } else {
       espnHtml = ESPNLayer.renderSquadHTML(m.team1, m.team2, t1players, t2players);
     }
@@ -1709,23 +1709,33 @@ const AnimLayer = {
    ════════════════════════════════════════════════════════════════════ */
 const ESPNLayer = {
   BASE: 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world',
-  PROXY: 'https://corsproxy.io/?url=',
+  /* allorigins.win explicitly sends Access-Control-Allow-Origin: * — works from file:// too */
+  ALLORIGINS: 'https://api.allorigins.win/get?url=',
   _buildPromise: null,
-  _useProxy: false,
 
-  /* Fetch with automatic CORS-proxy fallback + 10 s timeout */
+  /* Try ESPN directly; if CORS blocks it (file:// / null origin) fall back to allorigins proxy */
   async _fetch(url) {
-    const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
-    if (ESPNLayer._useProxy) {
-      return withTimeout(fetch(ESPNLayer.PROXY + encodeURIComponent(url)), 10000);
-    }
+    const withTimeout = (p, ms) =>
+      Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+
+    // Direct attempt — works when served from a real HTTP origin
     try {
-      const r = await withTimeout(fetch(url), 8000);
-      return r;
-    } catch {
-      ESPNLayer._useProxy = true;
-      return withTimeout(fetch(ESPNLayer.PROXY + encodeURIComponent(url)), 10000);
-    }
+      const r = await withTimeout(fetch(url), 5000);
+      if (r.ok) return r;
+    } catch { /* CORS error or network — fall through */ }
+
+    // allorigins.win proxy — wraps response as { contents: "...", status: { http_code: N } }
+    const proxyRes = await withTimeout(
+      fetch(ESPNLayer.ALLORIGINS + encodeURIComponent(url)),
+      12000
+    );
+    if (!proxyRes.ok) throw new Error(`allorigins HTTP ${proxyRes.status}`);
+    const wrapper = await proxyRes.json();
+    if (!wrapper.contents) throw new Error('allorigins: empty contents');
+    return new Response(wrapper.contents, {
+      status: wrapper.status?.http_code || 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   },
 
   /* Map ESPN display names → our static team names */
