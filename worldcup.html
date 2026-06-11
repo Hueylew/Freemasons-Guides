@@ -50,21 +50,38 @@
     #nav-wrap {
       position: sticky; top: 0; z-index: 50;
       background: #ffffff;
-      border-bottom: 1px solid #e2e8f0;
-      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      border-bottom: 2px solid #e2e8f0;
+      box-shadow: 0 1px 8px rgba(0,0,0,.08);
     }
     #nav-tabs {
       max-width: 80rem; margin: 0 auto;
       padding: 10px 1rem;
       display: flex; flex-wrap: wrap; gap: 6px;
     }
-    .nav-tab {
-      padding: 6px 20px; border-radius: 99px; font-size: 13px; font-weight: 600;
-      border: 1px solid transparent; color: #475569; cursor: pointer;
-      background: transparent; transition: all .18s; white-space: nowrap;
+    /* Explicit nav-tab styles — !important prevents Tailwind CDN interference */
+    button.nav-tab {
+      padding: 8px 22px !important; border-radius: 99px !important;
+      font-size: 13px !important; font-weight: 700 !important;
+      font-family: inherit !important;
+      border: 1.5px solid #cbd5e1 !important;
+      color: #334155 !important;
+      cursor: pointer !important;
+      background: #f8fafc !important;
+      transition: all .18s !important;
+      white-space: nowrap !important;
+      line-height: 1.4 !important;
     }
-    .nav-tab.active { background: #16a34a; color: #fff; border-color: #16a34a; }
-    .nav-tab:hover:not(.active) { background: #f1f5f9; color: #0f172a; border-color: #e2e8f0; }
+    button.nav-tab.active {
+      background: #16a34a !important;
+      color: #ffffff !important;
+      border-color: #16a34a !important;
+      box-shadow: 0 2px 6px rgba(22,163,74,.35) !important;
+    }
+    button.nav-tab:hover:not(.active) {
+      background: #e2e8f0 !important;
+      color: #0f172a !important;
+      border-color: #94a3b8 !important;
+    }
 
     /* ── Live badge ──────────────────────────────────────────────── */
     #live-badge { display: none; align-items: center; gap: 8px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 9999px; padding: 6px 16px; }
@@ -277,7 +294,57 @@
       margin-bottom: 6px;
     }
     .news-placeholder { font-size: 11px; color: #94a3b8; line-height: 1.5; margin: 0; }
-    .news-source { font-size: 10px; color: #cbd5e1; margin-top: 10px; }
+    .news-source { font-size: 10px; color: #94a3b8; margin-top: 10px; }
+
+    /* ── Lineup grid ─────────────────────────────────────────────── */
+    .lineup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+    .lineup-team-col h4 {
+      font-size: 11px; font-weight: 700; color: #475569;
+      text-transform: uppercase; letter-spacing: .05em;
+      margin: 0 0 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;
+    }
+    .lineup-player {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: #0f172a; padding: 3px 0;
+    }
+    .lineup-num { font-family: monospace; font-size: 10px; color: #94a3b8; min-width: 16px; }
+    .lineup-pos {
+      font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+      background: #f1f5f9; color: #475569; text-transform: uppercase;
+    }
+    .lineup-sub { color: #94a3b8; font-style: italic; }
+
+    /* ── API key banner ──────────────────────────────────────────── */
+    .api-key-banner {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 10px 12px; font-size: 11px; color: #475569;
+      display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;
+    }
+    .api-key-banner .api-key-label { font-weight: 600; color: #334155; font-size: 12px; }
+    .api-key-row { display: flex; gap: 6px; }
+    .api-key-input {
+      flex: 1; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 6px;
+      font-size: 11px; font-family: monospace; color: #0f172a;
+      background: #fff; outline: none;
+    }
+    .api-key-input:focus { border-color: #16a34a; box-shadow: 0 0 0 2px rgba(22,163,74,.15); }
+    .api-key-btn {
+      padding: 5px 12px; background: #16a34a; color: #fff;
+      border: none; border-radius: 6px; font-size: 11px; font-weight: 600;
+      cursor: pointer;
+    }
+    .api-key-btn:hover { background: #15803d; }
+
+    /* ── Watch links ─────────────────────────────────────────────── */
+    .watch-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .watch-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+      text-decoration: none; transition: opacity .15s;
+    }
+    .watch-link:hover { opacity: .8; }
+    .watch-link.bbc { background: #c00; color: #fff; }
+    .watch-link.itv { background: #d97706; color: #fff; }
 
     /* ── Bracket ─────────────────────────────────────────────────── */
     .bracket-wrap { display: flex; gap: 0; align-items: flex-start; min-width: 980px; }
@@ -375,8 +442,8 @@
 <!-- Sticky tab nav -->
 <div id="nav-wrap">
   <nav id="nav-tabs">
-    <button class="nav-tab active" data-section="groups">Groups</button>
-    <button class="nav-tab" data-section="today">Today</button>
+    <button class="nav-tab active" data-section="today">Today</button>
+    <button class="nav-tab" data-section="groups">Groups</button>
     <button class="nav-tab" data-section="bracket">Bracket</button>
     <button class="nav-tab" data-section="scorers">Top Scorers</button>
   </nav>
@@ -384,15 +451,8 @@
 
 <main>
 
-  <!-- ═══ GROUPS ═══ -->
-  <section id="groups" class="section-panel active">
-    <h2 class="sec-head">Group Stage</h2>
-    <div id="groups-grid"></div>
-    <p style="font-size:10px;color:#94a3b8;margin-top:1rem">Top 2 teams per group advance automatically. Best 8 third-placed teams also advance.</p>
-  </section>
-
   <!-- ═══ TODAY ═══ -->
-  <section id="today" class="section-panel">
+  <section id="today" class="section-panel active">
     <h2 class="sec-head">Today's Matches</h2>
     <p id="today-date"></p>
     <div id="today-matches-wrap">
@@ -404,6 +464,13 @@
       </div>
     </div>
     <div id="match-detail"></div>
+  </section>
+
+  <!-- ═══ GROUPS ═══ -->
+  <section id="groups" class="section-panel">
+    <h2 class="sec-head">Group Stage</h2>
+    <div id="groups-grid"></div>
+    <p style="font-size:10px;color:#94a3b8;margin-top:1rem">Top 2 teams per group advance automatically. Best 8 third-placed teams also advance.</p>
   </section>
 
   <!-- ═══ BRACKET ═══ -->
@@ -506,89 +573,89 @@ const STATIC_DATA = {
 
   matches: [
     /* ── GROUP A ─────────────────────────────────────────── */
-    {id:1,  round:'Matchday 1', date:'2026-06-11', time:'20:00', uo:-6, team1:'Mexico',        team2:'South Africa',    group:'A', ground:'Mexico City'},
-    {id:2,  round:'Matchday 1', date:'2026-06-11', time:'13:00', uo:-6, team1:'Czech Republic', team2:'South Korea',     group:'A', ground:'Guadalajara'},
-    {id:3,  round:'Matchday 2', date:'2026-06-16', time:'20:00', uo:-6, team1:'Mexico',        team2:'Czech Republic',  group:'A', ground:'Monterrey'},
-    {id:4,  round:'Matchday 2', date:'2026-06-16', time:'13:00', uo:-6, team1:'South Africa',   team2:'South Korea',     group:'A', ground:'Guadalajara'},
-    {id:5,  round:'Matchday 3', date:'2026-06-25', time:'20:00', uo:-6, team1:'Mexico',        team2:'South Korea',     group:'A', ground:'Monterrey'},
-    {id:6,  round:'Matchday 3', date:'2026-06-25', time:'20:00', uo:-6, team1:'South Africa',   team2:'Czech Republic',  group:'A', ground:'Mexico City'},
+    {id:1,  round:'Matchday 1', date:'2026-06-11', time:'13:00', uo:-6, team1:'Mexico',              team2:'South Africa',      group:'A', ground:'Mexico City'},
+    {id:2,  round:'Matchday 1', date:'2026-06-11', time:'20:00', uo:-6, team1:'South Korea',          team2:'Czech Republic',    group:'A', ground:'Guadalajara'},
+    {id:3,  round:'Matchday 2', date:'2026-06-18', time:'12:00', uo:-4, team1:'Czech Republic',       team2:'South Africa',      group:'A', ground:'Atlanta'},
+    {id:4,  round:'Matchday 2', date:'2026-06-18', time:'19:00', uo:-6, team1:'Mexico',               team2:'South Korea',       group:'A', ground:'Guadalajara'},
+    {id:5,  round:'Matchday 3', date:'2026-06-24', time:'19:00', uo:-6, team1:'Czech Republic',       team2:'Mexico',            group:'A', ground:'Mexico City'},
+    {id:6,  round:'Matchday 3', date:'2026-06-24', time:'19:00', uo:-6, team1:'South Africa',         team2:'South Korea',       group:'A', ground:'Monterrey'},
     /* ── GROUP B ─────────────────────────────────────────── */
-    {id:7,  round:'Matchday 1', date:'2026-06-12', time:'18:00', uo:-4, team1:'Canada',         team2:'Switzerland',     group:'B', ground:'Toronto'},
-    {id:8,  round:'Matchday 1', date:'2026-06-12', time:'14:00', uo:-5, team1:'Bosnia-Herzegovina', team2:'Qatar',       group:'B', ground:'Dallas'},
-    {id:9,  round:'Matchday 2', date:'2026-06-17', time:'18:00', uo:-4, team1:'Canada',         team2:'Bosnia-Herzegovina', group:'B', ground:'Toronto'},
-    {id:10, round:'Matchday 2', date:'2026-06-17', time:'14:00', uo:-5, team1:'Switzerland',    team2:'Qatar',           group:'B', ground:'Houston'},
-    {id:11, round:'Matchday 3', date:'2026-06-26', time:'18:00', uo:-4, team1:'Canada',         team2:'Qatar',           group:'B', ground:'Toronto'},
-    {id:12, round:'Matchday 3', date:'2026-06-26', time:'18:00', uo:-4, team1:'Switzerland',    team2:'Bosnia-Herzegovina', group:'B', ground:'Boston'},
+    {id:7,  round:'Matchday 1', date:'2026-06-12', time:'15:00', uo:-4, team1:'Canada',               team2:'Bosnia-Herzegovina', group:'B', ground:'Toronto'},
+    {id:8,  round:'Matchday 1', date:'2026-06-13', time:'12:00', uo:-7, team1:'Qatar',                team2:'Switzerland',       group:'B', ground:'San Francisco'},
+    {id:9,  round:'Matchday 2', date:'2026-06-18', time:'12:00', uo:-7, team1:'Switzerland',          team2:'Bosnia-Herzegovina', group:'B', ground:'Los Angeles'},
+    {id:10, round:'Matchday 2', date:'2026-06-18', time:'15:00', uo:-7, team1:'Canada',               team2:'Qatar',             group:'B', ground:'Vancouver'},
+    {id:11, round:'Matchday 3', date:'2026-06-24', time:'12:00', uo:-7, team1:'Switzerland',          team2:'Canada',            group:'B', ground:'Vancouver'},
+    {id:12, round:'Matchday 3', date:'2026-06-24', time:'12:00', uo:-7, team1:'Bosnia-Herzegovina',   team2:'Qatar',             group:'B', ground:'Seattle'},
     /* ── GROUP C ─────────────────────────────────────────── */
-    {id:13, round:'Matchday 1', date:'2026-06-12', time:'21:00', uo:-4, team1:'Brazil',         team2:'Haiti',           group:'C', ground:'Miami'},
-    {id:14, round:'Matchday 1', date:'2026-06-12', time:'17:00', uo:-4, team1:'Morocco',        team2:'Scotland',        group:'C', ground:'Atlanta'},
-    {id:15, round:'Matchday 2', date:'2026-06-18', time:'21:00', uo:-4, team1:'Brazil',         team2:'Morocco',         group:'C', ground:'Miami'},
-    {id:16, round:'Matchday 2', date:'2026-06-18', time:'17:00', uo:-4, team1:'Haiti',          team2:'Scotland',        group:'C', ground:'Atlanta'},
-    {id:17, round:'Matchday 3', date:'2026-06-27', time:'20:00', uo:-4, team1:'Brazil',         team2:'Scotland',        group:'C', ground:'Miami'},
-    {id:18, round:'Matchday 3', date:'2026-06-27', time:'20:00', uo:-4, team1:'Haiti',          team2:'Morocco',         group:'C', ground:'Atlanta'},
+    {id:13, round:'Matchday 1', date:'2026-06-13', time:'18:00', uo:-4, team1:'Brazil',               team2:'Morocco',           group:'C', ground:'New York/NJ'},
+    {id:14, round:'Matchday 1', date:'2026-06-13', time:'21:00', uo:-4, team1:'Haiti',                team2:'Scotland',          group:'C', ground:'Boston'},
+    {id:15, round:'Matchday 2', date:'2026-06-19', time:'18:00', uo:-4, team1:'Scotland',             team2:'Morocco',           group:'C', ground:'Boston'},
+    {id:16, round:'Matchday 2', date:'2026-06-19', time:'20:30', uo:-4, team1:'Brazil',               team2:'Haiti',             group:'C', ground:'Philadelphia'},
+    {id:17, round:'Matchday 3', date:'2026-06-24', time:'18:00', uo:-4, team1:'Scotland',             team2:'Brazil',            group:'C', ground:'Miami'},
+    {id:18, round:'Matchday 3', date:'2026-06-24', time:'18:00', uo:-4, team1:'Morocco',              team2:'Haiti',             group:'C', ground:'Atlanta'},
     /* ── GROUP D ─────────────────────────────────────────── */
-    {id:19, round:'Matchday 1', date:'2026-06-13', time:'15:00', uo:-4, team1:'USA',            team2:'Paraguay',        group:'D', ground:'New York/NJ'},
-    {id:20, round:'Matchday 1', date:'2026-06-13', time:'18:00', uo:-5, team1:'Australia',      team2:'Turkey',          group:'D', ground:'Kansas City'},
-    {id:21, round:'Matchday 2', date:'2026-06-18', time:'15:00', uo:-4, team1:'USA',            team2:'Australia',       group:'D', ground:'Philadelphia'},
-    {id:22, round:'Matchday 2', date:'2026-06-18', time:'18:00', uo:-5, team1:'Paraguay',       team2:'Turkey',          group:'D', ground:'Kansas City'},
-    {id:23, round:'Matchday 3', date:'2026-06-26', time:'20:00', uo:-4, team1:'USA',            team2:'Turkey',          group:'D', ground:'New York/NJ'},
-    {id:24, round:'Matchday 3', date:'2026-06-26', time:'20:00', uo:-5, team1:'Paraguay',       team2:'Australia',       group:'D', ground:'Dallas'},
+    {id:19, round:'Matchday 1', date:'2026-06-12', time:'18:00', uo:-7, team1:'USA',                  team2:'Paraguay',          group:'D', ground:'Los Angeles'},
+    {id:20, round:'Matchday 1', date:'2026-06-13', time:'21:00', uo:-7, team1:'Australia',            team2:'Turkey',            group:'D', ground:'Vancouver'},
+    {id:21, round:'Matchday 2', date:'2026-06-19', time:'12:00', uo:-7, team1:'USA',                  team2:'Australia',         group:'D', ground:'Seattle'},
+    {id:22, round:'Matchday 2', date:'2026-06-19', time:'20:00', uo:-7, team1:'Turkey',               team2:'Paraguay',          group:'D', ground:'San Francisco'},
+    {id:23, round:'Matchday 3', date:'2026-06-25', time:'19:00', uo:-7, team1:'Turkey',               team2:'USA',               group:'D', ground:'Los Angeles'},
+    {id:24, round:'Matchday 3', date:'2026-06-25', time:'19:00', uo:-7, team1:'Paraguay',             team2:'Australia',         group:'D', ground:'San Francisco'},
     /* ── GROUP E ─────────────────────────────────────────── */
-    {id:25, round:'Matchday 1', date:'2026-06-13', time:'21:00', uo:-4, team1:'Germany',        team2:'Ivory Coast',     group:'E', ground:'Philadelphia'},
-    {id:26, round:'Matchday 1', date:'2026-06-13', time:'16:00', uo:-7, team1:'Curaçao',        team2:'Ecuador',         group:'E', ground:'Los Angeles'},
-    {id:27, round:'Matchday 2', date:'2026-06-19', time:'21:00', uo:-4, team1:'Germany',        team2:'Curaçao',         group:'E', ground:'New York/NJ'},
-    {id:28, round:'Matchday 2', date:'2026-06-19', time:'16:00', uo:-7, team1:'Ivory Coast',    team2:'Ecuador',         group:'E', ground:'Los Angeles'},
-    {id:29, round:'Matchday 3', date:'2026-06-27', time:'18:00', uo:-4, team1:'Germany',        team2:'Ecuador',         group:'E', ground:'Philadelphia'},
-    {id:30, round:'Matchday 3', date:'2026-06-27', time:'18:00', uo:-7, team1:'Ivory Coast',    team2:'Curaçao',         group:'E', ground:'San Francisco'},
+    {id:25, round:'Matchday 1', date:'2026-06-14', time:'12:00', uo:-5, team1:'Germany',              team2:'Curaçao',           group:'E', ground:'Houston'},
+    {id:26, round:'Matchday 1', date:'2026-06-14', time:'19:00', uo:-4, team1:'Ivory Coast',          team2:'Ecuador',           group:'E', ground:'Philadelphia'},
+    {id:27, round:'Matchday 2', date:'2026-06-20', time:'16:00', uo:-4, team1:'Germany',              team2:'Ivory Coast',       group:'E', ground:'Toronto'},
+    {id:28, round:'Matchday 2', date:'2026-06-20', time:'19:00', uo:-5, team1:'Ecuador',              team2:'Curaçao',           group:'E', ground:'Kansas City'},
+    {id:29, round:'Matchday 3', date:'2026-06-25', time:'16:00', uo:-4, team1:'Curaçao',              team2:'Ivory Coast',       group:'E', ground:'Philadelphia'},
+    {id:30, round:'Matchday 3', date:'2026-06-25', time:'16:00', uo:-4, team1:'Ecuador',              team2:'Germany',           group:'E', ground:'New York/NJ'},
     /* ── GROUP F ─────────────────────────────────────────── */
-    {id:31, round:'Matchday 1', date:'2026-06-14', time:'18:00', uo:-4, team1:'Netherlands',    team2:'Japan',           group:'F', ground:'Boston'},
-    {id:32, round:'Matchday 1', date:'2026-06-14', time:'14:00', uo:-5, team1:'Tunisia',        team2:'Sweden',          group:'F', ground:'Atlanta'},
-    {id:33, round:'Matchday 2', date:'2026-06-19', time:'18:00', uo:-4, team1:'Netherlands',    team2:'Tunisia',         group:'F', ground:'Boston'},
-    {id:34, round:'Matchday 2', date:'2026-06-19', time:'14:00', uo:-5, team1:'Japan',          team2:'Sweden',          group:'F', ground:'Atlanta'},
-    {id:35, round:'Matchday 3', date:'2026-06-27', time:'16:00', uo:-4, team1:'Netherlands',    team2:'Sweden',          group:'F', ground:'Boston'},
-    {id:36, round:'Matchday 3', date:'2026-06-27', time:'16:00', uo:-5, team1:'Japan',          team2:'Tunisia',         group:'F', ground:'Atlanta'},
+    {id:31, round:'Matchday 1', date:'2026-06-14', time:'15:00', uo:-5, team1:'Netherlands',          team2:'Japan',             group:'F', ground:'Dallas'},
+    {id:32, round:'Matchday 1', date:'2026-06-14', time:'20:00', uo:-6, team1:'Sweden',               team2:'Tunisia',           group:'F', ground:'Monterrey'},
+    {id:33, round:'Matchday 2', date:'2026-06-20', time:'12:00', uo:-5, team1:'Netherlands',          team2:'Sweden',            group:'F', ground:'Houston'},
+    {id:34, round:'Matchday 2', date:'2026-06-20', time:'22:00', uo:-6, team1:'Tunisia',              team2:'Japan',             group:'F', ground:'Monterrey'},
+    {id:35, round:'Matchday 3', date:'2026-06-25', time:'18:00', uo:-5, team1:'Japan',                team2:'Sweden',            group:'F', ground:'Dallas'},
+    {id:36, round:'Matchday 3', date:'2026-06-25', time:'18:00', uo:-5, team1:'Tunisia',              team2:'Netherlands',       group:'F', ground:'Kansas City'},
     /* ── GROUP G ─────────────────────────────────────────── */
-    {id:37, round:'Matchday 1', date:'2026-06-14', time:'21:00', uo:-5, team1:'Belgium',        team2:'Egypt',           group:'G', ground:'Houston'},
-    {id:38, round:'Matchday 1', date:'2026-06-14', time:'17:00', uo:-7, team1:'Iran',           team2:'New Zealand',     group:'G', ground:'Seattle'},
-    {id:39, round:'Matchday 2', date:'2026-06-20', time:'21:00', uo:-5, team1:'Belgium',        team2:'Iran',            group:'G', ground:'Houston'},
-    {id:40, round:'Matchday 2', date:'2026-06-20', time:'17:00', uo:-7, team1:'Egypt',          team2:'New Zealand',     group:'G', ground:'Seattle'},
-    {id:41, round:'Matchday 3', date:'2026-06-27', time:'20:00', uo:-5, team1:'Belgium',        team2:'New Zealand',     group:'G', ground:'Houston'},
-    {id:42, round:'Matchday 3', date:'2026-06-27', time:'20:00', uo:-7, team1:'Egypt',          team2:'Iran',            group:'G', ground:'Seattle'},
+    {id:37, round:'Matchday 1', date:'2026-06-15', time:'12:00', uo:-7, team1:'Belgium',              team2:'Egypt',             group:'G', ground:'Seattle'},
+    {id:38, round:'Matchday 1', date:'2026-06-15', time:'18:00', uo:-7, team1:'Iran',                 team2:'New Zealand',       group:'G', ground:'Los Angeles'},
+    {id:39, round:'Matchday 2', date:'2026-06-21', time:'12:00', uo:-7, team1:'Belgium',              team2:'Iran',              group:'G', ground:'Los Angeles'},
+    {id:40, round:'Matchday 2', date:'2026-06-21', time:'18:00', uo:-7, team1:'New Zealand',          team2:'Egypt',             group:'G', ground:'Vancouver'},
+    {id:41, round:'Matchday 3', date:'2026-06-26', time:'20:00', uo:-7, team1:'Egypt',                team2:'Iran',              group:'G', ground:'Seattle'},
+    {id:42, round:'Matchday 3', date:'2026-06-26', time:'20:00', uo:-7, team1:'New Zealand',          team2:'Belgium',           group:'G', ground:'Vancouver'},
     /* ── GROUP H ─────────────────────────────────────────── */
-    {id:43, round:'Matchday 1', date:'2026-06-15', time:'21:00', uo:-4, team1:'Spain',          team2:'Uruguay',         group:'H', ground:'Miami'},
-    {id:44, round:'Matchday 1', date:'2026-06-15', time:'17:00', uo:-6, team1:'Saudi Arabia',   team2:'Cape Verde',      group:'H', ground:'Monterrey'},
-    {id:45, round:'Matchday 2', date:'2026-06-20', time:'21:00', uo:-4, team1:'Spain',          team2:'Saudi Arabia',    group:'H', ground:'Miami'},
-    {id:46, round:'Matchday 2', date:'2026-06-20', time:'17:00', uo:-6, team1:'Uruguay',        team2:'Cape Verde',      group:'H', ground:'Monterrey'},
-    {id:47, round:'Matchday 3', date:'2026-06-27', time:'20:00', uo:-4, team1:'Spain',          team2:'Cape Verde',      group:'H', ground:'Miami'},
-    {id:48, round:'Matchday 3', date:'2026-06-27', time:'20:00', uo:-6, team1:'Uruguay',        team2:'Saudi Arabia',    group:'H', ground:'Monterrey'},
+    {id:43, round:'Matchday 1', date:'2026-06-15', time:'12:00', uo:-4, team1:'Spain',                team2:'Cape Verde',        group:'H', ground:'Atlanta'},
+    {id:44, round:'Matchday 1', date:'2026-06-15', time:'18:00', uo:-4, team1:'Saudi Arabia',         team2:'Uruguay',           group:'H', ground:'Miami'},
+    {id:45, round:'Matchday 2', date:'2026-06-21', time:'12:00', uo:-4, team1:'Spain',                team2:'Saudi Arabia',      group:'H', ground:'Atlanta'},
+    {id:46, round:'Matchday 2', date:'2026-06-21', time:'18:00', uo:-4, team1:'Uruguay',              team2:'Cape Verde',        group:'H', ground:'Miami'},
+    {id:47, round:'Matchday 3', date:'2026-06-26', time:'19:00', uo:-5, team1:'Cape Verde',           team2:'Saudi Arabia',      group:'H', ground:'Houston'},
+    {id:48, round:'Matchday 3', date:'2026-06-26', time:'18:00', uo:-6, team1:'Uruguay',              team2:'Spain',             group:'H', ground:'Guadalajara'},
     /* ── GROUP I ─────────────────────────────────────────── */
-    {id:49, round:'Matchday 1', date:'2026-06-15', time:'20:00', uo:-4, team1:'France',         team2:'Senegal',         group:'I', ground:'New York/NJ'},
-    {id:50, round:'Matchday 1', date:'2026-06-15', time:'16:00', uo:-4, team1:'Norway',         team2:'Iraq',            group:'I', ground:'Boston'},
-    {id:51, round:'Matchday 2', date:'2026-06-21', time:'20:00', uo:-4, team1:'France',         team2:'Norway',          group:'I', ground:'New York/NJ'},
-    {id:52, round:'Matchday 2', date:'2026-06-21', time:'16:00', uo:-4, team1:'Senegal',        team2:'Iraq',            group:'I', ground:'Boston'},
-    {id:53, round:'Matchday 3', date:'2026-06-26', time:'20:00', uo:-4, team1:'France',         team2:'Iraq',            group:'I', ground:'Philadelphia'},
-    {id:54, round:'Matchday 3', date:'2026-06-26', time:'20:00', uo:-4, team1:'Senegal',        team2:'Norway',          group:'I', ground:'New York/NJ'},
+    {id:49, round:'Matchday 1', date:'2026-06-16', time:'15:00', uo:-4, team1:'France',               team2:'Senegal',           group:'I', ground:'New York/NJ'},
+    {id:50, round:'Matchday 1', date:'2026-06-16', time:'18:00', uo:-4, team1:'Iraq',                 team2:'Norway',            group:'I', ground:'Boston'},
+    {id:51, round:'Matchday 2', date:'2026-06-22', time:'17:00', uo:-4, team1:'France',               team2:'Iraq',              group:'I', ground:'Philadelphia'},
+    {id:52, round:'Matchday 2', date:'2026-06-22', time:'20:00', uo:-4, team1:'Norway',               team2:'Senegal',           group:'I', ground:'New York/NJ'},
+    {id:53, round:'Matchday 3', date:'2026-06-26', time:'15:00', uo:-4, team1:'Norway',               team2:'France',            group:'I', ground:'Boston'},
+    {id:54, round:'Matchday 3', date:'2026-06-26', time:'15:00', uo:-4, team1:'Senegal',              team2:'Iraq',              group:'I', ground:'Toronto'},
     /* ── GROUP J ─────────────────────────────────────────── */
-    {id:55, round:'Matchday 1', date:'2026-06-15', time:'22:00', uo:-5, team1:'Argentina',      team2:'Jordan',          group:'J', ground:'Dallas'},
-    {id:56, round:'Matchday 1', date:'2026-06-15', time:'18:00', uo:-7, team1:'Austria',        team2:'Algeria',         group:'J', ground:'San Francisco'},
-    {id:57, round:'Matchday 2', date:'2026-06-21', time:'22:00', uo:-5, team1:'Argentina',      team2:'Austria',         group:'J', ground:'Dallas'},
-    {id:58, round:'Matchday 2', date:'2026-06-21', time:'18:00', uo:-7, team1:'Jordan',         team2:'Algeria',         group:'J', ground:'San Francisco'},
-    {id:59, round:'Matchday 3', date:'2026-06-27', time:'21:00', uo:-5, team1:'Argentina',      team2:'Algeria',         group:'J', ground:'Dallas'},
-    {id:60, round:'Matchday 3', date:'2026-06-27', time:'21:00', uo:-7, team1:'Jordan',         team2:'Austria',         group:'J', ground:'Los Angeles'},
+    {id:55, round:'Matchday 1', date:'2026-06-16', time:'20:00', uo:-5, team1:'Argentina',            team2:'Algeria',           group:'J', ground:'Kansas City'},
+    {id:56, round:'Matchday 1', date:'2026-06-16', time:'21:00', uo:-7, team1:'Austria',              team2:'Jordan',            group:'J', ground:'San Francisco'},
+    {id:57, round:'Matchday 2', date:'2026-06-22', time:'12:00', uo:-5, team1:'Argentina',            team2:'Austria',           group:'J', ground:'Dallas'},
+    {id:58, round:'Matchday 2', date:'2026-06-22', time:'20:00', uo:-7, team1:'Jordan',               team2:'Algeria',           group:'J', ground:'San Francisco'},
+    {id:59, round:'Matchday 3', date:'2026-06-27', time:'21:00', uo:-5, team1:'Algeria',              team2:'Austria',           group:'J', ground:'Kansas City'},
+    {id:60, round:'Matchday 3', date:'2026-06-27', time:'21:00', uo:-5, team1:'Jordan',               team2:'Argentina',         group:'J', ground:'Dallas'},
     /* ── GROUP K ─────────────────────────────────────────── */
-    {id:61, round:'Matchday 1', date:'2026-06-16', time:'21:00', uo:-4, team1:'Portugal',       team2:'Uzbekistan',      group:'K', ground:'Philadelphia'},
-    {id:62, round:'Matchday 1', date:'2026-06-16', time:'17:00', uo:-5, team1:'Colombia',       team2:'Congo DR',        group:'K', ground:'Atlanta'},
-    {id:63, round:'Matchday 2', date:'2026-06-21', time:'21:00', uo:-4, team1:'Portugal',       team2:'Colombia',        group:'K', ground:'Philadelphia'},
-    {id:64, round:'Matchday 2', date:'2026-06-21', time:'17:00', uo:-5, team1:'Uzbekistan',     team2:'Congo DR',        group:'K', ground:'Atlanta'},
-    {id:65, round:'Matchday 3', date:'2026-06-26', time:'21:00', uo:-4, team1:'Portugal',       team2:'Congo DR',        group:'K', ground:'Philadelphia'},
-    {id:66, round:'Matchday 3', date:'2026-06-26', time:'21:00', uo:-5, team1:'Uzbekistan',     team2:'Colombia',        group:'K', ground:'Atlanta'},
+    {id:61, round:'Matchday 1', date:'2026-06-17', time:'12:00', uo:-5, team1:'Portugal',             team2:'Congo DR',          group:'K', ground:'Houston'},
+    {id:62, round:'Matchday 1', date:'2026-06-17', time:'20:00', uo:-6, team1:'Uzbekistan',           team2:'Colombia',          group:'K', ground:'Mexico City'},
+    {id:63, round:'Matchday 2', date:'2026-06-23', time:'12:00', uo:-5, team1:'Portugal',             team2:'Uzbekistan',        group:'K', ground:'Houston'},
+    {id:64, round:'Matchday 2', date:'2026-06-23', time:'20:00', uo:-6, team1:'Colombia',             team2:'Congo DR',          group:'K', ground:'Guadalajara'},
+    {id:65, round:'Matchday 3', date:'2026-06-27', time:'19:30', uo:-4, team1:'Colombia',             team2:'Portugal',          group:'K', ground:'Miami'},
+    {id:66, round:'Matchday 3', date:'2026-06-27', time:'19:30', uo:-4, team1:'Congo DR',             team2:'Uzbekistan',        group:'K', ground:'Atlanta'},
     /* ── GROUP L ─────────────────────────────────────────── */
-    {id:67, round:'Matchday 1', date:'2026-06-16', time:'21:00', uo:-5, team1:'England',        team2:'Panama',          group:'L', ground:'Kansas City'},
-    {id:68, round:'Matchday 1', date:'2026-06-16', time:'17:00', uo:-7, team1:'Croatia',        team2:'Ghana',           group:'L', ground:'Los Angeles'},
-    {id:69, round:'Matchday 2', date:'2026-06-22', time:'21:00', uo:-5, team1:'England',        team2:'Croatia',         group:'L', ground:'Kansas City'},
-    {id:70, round:'Matchday 2', date:'2026-06-22', time:'17:00', uo:-7, team1:'Panama',         team2:'Ghana',           group:'L', ground:'Los Angeles'},
-    {id:71, round:'Matchday 3', date:'2026-06-26', time:'20:00', uo:-5, team1:'England',        team2:'Ghana',           group:'L', ground:'Kansas City'},
-    {id:72, round:'Matchday 3', date:'2026-06-26', time:'20:00', uo:-7, team1:'Panama',         team2:'Croatia',         group:'L', ground:'Los Angeles'},
+    {id:67, round:'Matchday 1', date:'2026-06-17', time:'15:00', uo:-5, team1:'England',              team2:'Croatia',           group:'L', ground:'Dallas'},
+    {id:68, round:'Matchday 1', date:'2026-06-17', time:'19:00', uo:-4, team1:'Ghana',                team2:'Panama',            group:'L', ground:'Toronto'},
+    {id:69, round:'Matchday 2', date:'2026-06-23', time:'16:00', uo:-4, team1:'England',              team2:'Ghana',             group:'L', ground:'Boston'},
+    {id:70, round:'Matchday 2', date:'2026-06-23', time:'19:00', uo:-4, team1:'Panama',               team2:'Croatia',           group:'L', ground:'Toronto'},
+    {id:71, round:'Matchday 3', date:'2026-06-27', time:'17:00', uo:-4, team1:'Panama',               team2:'England',           group:'L', ground:'New York/NJ'},
+    {id:72, round:'Matchday 3', date:'2026-06-27', time:'17:00', uo:-4, team1:'Croatia',              team2:'Ghana',             group:'L', ground:'Philadelphia'},
 
     /* ── ROUND OF 32 ─────────────────────────────────────── */
     {id:73,  num:73,  round:'Round of 32', date:'2026-06-28', time:'12:00', uo:-7, team1:'1A',    team2:'2C',    group:null, ground:'Los Angeles'},
@@ -640,9 +707,7 @@ const STATIC_DATA = {
     const b = {};
     // Group stage: odd IDs → ITV, even → BBC
     for (let i = 1; i <= 72; i++) b[i] = i % 2 === 1 ? 'ITV' : 'BBC';
-    // Opening match (Mexico v South Africa) → BBC
-    b[1] = 'BBC';
-    // England group games: id 67 (v Panama)=ITV, 69 (v Croatia)=BBC, 71 (v Ghana)=ITV
+    // England group games: id 67 (v Croatia)=ITV, 69 (v Ghana)=BBC, 71 (v England)=ITV
     b[67] = 'ITV'; b[69] = 'BBC'; b[71] = 'ITV';
     // Knockout R32 & R16: odd=ITV, even=BBC
     for (let i = 73; i <= 96; i++) b[i] = i % 2 === 1 ? 'ITV' : 'BBC';
@@ -671,6 +736,7 @@ const STATE = {
   pollingInterval:  null,
   prevOrder:        {},   // { groupLetter: [teamName,...] }
   selectedMatchId:  null, // currently viewed match detail
+  bdlMatchIds:      {},   // { ourMatchId: balldontlieMatchId } — populated from BDL API
 };
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1152,24 +1218,10 @@ const RenderLayer = {
           </div>
         </div>
 
-        <div class="detail-card">
-          <div class="detail-card-head">Team News</div>
-          <div class="detail-card-body">
-            <div class="team-news-section">
-              <div class="team-news-head">
-                <span>${t1.flag}</span>
-                <span>${m.team1}</span>
-              </div>
-              <p class="news-placeholder">Lineups will be announced closer to kick-off. Check BBC Sport / ITV Sport for the latest team news.</p>
-            </div>
-            <div class="team-news-section">
-              <div class="team-news-head">
-                <span>${t2.flag}</span>
-                <span>${m.team2}</span>
-              </div>
-              <p class="news-placeholder">Lineups will be announced closer to kick-off. Check BBC Sport / ITV Sport for the latest team news.</p>
-            </div>
-            <p class="news-source">Source: <a href="https://www.bbc.co.uk/sport/football/world-cup" target="_blank" style="color:#94a3b8;text-decoration:underline">BBC Sport</a> / <a href="https://www.itv.com/football" target="_blank" style="color:#94a3b8;text-decoration:underline">ITV Sport</a></p>
+        <div class="detail-card" id="lineup-card-${m.id}">
+          <div class="detail-card-head">Lineups &amp; Team News</div>
+          <div class="detail-card-body" id="lineup-body-${m.id}">
+            ${RenderLayer._buildLineupBody(m, t1, t2)}
           </div>
         </div>
       </div>`;
@@ -1199,6 +1251,72 @@ const RenderLayer = {
       </div>`;
     }).join('');
     return `<div class="event-list">${rows}</div>`;
+  },
+
+  _buildLineupBody(m, t1, t2) {
+    const bc = STATIC_DATA.broadcasters[m.id];
+    const watchLinks = (() => {
+      if (!bc) return '';
+      const bbcLink = `<a class="watch-link bbc" href="https://www.bbc.co.uk/sport/football/world-cup" target="_blank">📺 BBC Sport</a>`;
+      const itvLink = `<a class="watch-link itv" href="https://www.itv.com/sport/football" target="_blank">📺 ITV Sport</a>`;
+      if (bc === 'BBC & ITV') return `<div class="watch-links">${bbcLink}${itvLink}</div>`;
+      if (bc === 'BBC') return `<div class="watch-links">${bbcLink}</div>`;
+      return `<div class="watch-links">${itvLink}</div>`;
+    })();
+
+    const hasKey = !!LineupLayer.getKey();
+    const keySection = `
+      <div class="api-key-banner">
+        <span class="api-key-label">🔑 Live Lineups via BALLDONTLIE API</span>
+        <span style="color:#94a3b8;font-size:10px">Free tier available at <a href="https://www.balldontlie.io" target="_blank" style="color:#16a34a">balldontlie.io</a></span>
+        <div class="api-key-row">
+          <input class="api-key-input" id="bdl-key-input" type="password"
+            placeholder="Paste your API key here…"
+            value="${LineupLayer.getKey()}"
+          />
+          <button class="api-key-btn" onclick="App.saveLineupKey(${m.id})">Load</button>
+        </div>
+      </div>`;
+
+    return `
+      ${hasKey ? '' : keySection}
+      <div class="team-news-section">
+        <div class="team-news-head"><span>${t1.flag}</span><span>${m.team1}</span></div>
+        <p class="news-placeholder" id="ln-t1-${m.id}">Lineup will appear once announced (1h before kick-off).</p>
+      </div>
+      <div class="team-news-section">
+        <div class="team-news-head"><span>${t2.flag}</span><span>${m.team2}</span></div>
+        <p class="news-placeholder" id="ln-t2-${m.id}">Lineup will appear once announced (1h before kick-off).</p>
+      </div>
+      ${watchLinks}
+      <p class="news-source" style="margin-top:8px">
+        <a href="https://www.bbc.co.uk/sport/football/world-cup" target="_blank" style="color:#94a3b8;text-decoration:underline">BBC Sport</a>
+        &nbsp;·&nbsp;
+        <a href="https://www.itv.com/sport/football" target="_blank" style="color:#94a3b8;text-decoration:underline">ITV Sport</a>
+        &nbsp;·&nbsp;
+        <a href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026" target="_blank" style="color:#94a3b8;text-decoration:underline">FIFA.com</a>
+      </p>`;
+  },
+
+  async refreshLineups(matchId) {
+    const m = STATIC_DATA.matches.find(x => x.id === matchId);
+    if (!m) return;
+    const t1 = STATIC_DATA.teams[m.team1] || { flag:'🏳' };
+    const t2 = STATIC_DATA.teams[m.team2] || { flag:'🏳' };
+    const bdlId = STATE.bdlMatchIds && STATE.bdlMatchIds[matchId];
+    const data  = await LineupLayer.fetchLineup(bdlId);
+    if (!data) return;
+    const html = LineupLayer.renderLineupHTML(data, m.team1, m.team2);
+    if (!html) return;
+    const body = document.getElementById('lineup-body-' + matchId);
+    if (body) {
+      body.innerHTML = html + `
+        <p class="news-source" style="margin-top:8px">
+          <a href="https://www.bbc.co.uk/sport/football/world-cup" target="_blank" style="color:#94a3b8;text-decoration:underline">BBC Sport</a>
+          &nbsp;·&nbsp;
+          <a href="https://www.itv.com/sport/football" target="_blank" style="color:#94a3b8;text-decoration:underline">ITV Sport</a>
+        </p>`;
+    }
   },
 
   updateLiveBadge() {
@@ -1493,14 +1611,67 @@ const AnimLayer = {
 };
 
 /* ════════════════════════════════════════════════════════════════════
+   LINEUP LAYER  — uses BALLDONTLIE free API (api key required)
+   Falls back gracefully when no key is available.
+   API docs: https://fifa.balldontlie.io/
+   ════════════════════════════════════════════════════════════════════ */
+const LineupLayer = {
+  KEY_STORE: 'wc2026_bdl_key',
+  BASE: 'https://api.balldontlie.io/fifa/worldcup/v1',
+
+  getKey() { try { return localStorage.getItem(LineupLayer.KEY_STORE) || ''; } catch { return ''; } },
+  setKey(k) { try { localStorage.setItem(LineupLayer.KEY_STORE, k.trim()); } catch {} },
+
+  async fetchLineup(bdlMatchId) {
+    const key = LineupLayer.getKey();
+    if (!key || !bdlMatchId) return null;
+    try {
+      const r = await fetch(`${LineupLayer.BASE}/match_lineups?game_id=${bdlMatchId}`, {
+        headers: { Authorization: key }
+      });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return j.data || null;
+    } catch { return null; }
+  },
+
+  renderLineupHTML(lineupData, team1, team2) {
+    if (!lineupData || !lineupData.length) return null;
+    const t1data = lineupData.find(l => l.team && (l.team.name === team1 || l.team.abbreviation === team1));
+    const t2data = lineupData.find(l => l.team && (l.team.name === team2 || l.team.abbreviation === team2));
+    if (!t1data && !t2data) return null;
+
+    const playerRow = (p, isSub) => `<div class="lineup-player${isSub ? ' lineup-sub' : ''}">
+      <span class="lineup-num">${p.jersey_number || ''}</span>
+      <span class="lineup-pos">${(p.position || '').substring(0,3)}</span>
+      <span>${p.player_name || p.name || 'Unknown'}</span>
+    </div>`;
+
+    const col = (d, teamName) => {
+      if (!d) return `<div class="lineup-team-col"><h4>${teamName}</h4><p class="news-placeholder">Not available</p></div>`;
+      const starters = (d.starters || []).map(p => playerRow(p, false)).join('');
+      const subs = (d.bench || []).map(p => playerRow(p, true)).join('');
+      return `<div class="lineup-team-col">
+        <h4>${teamName}</h4>
+        ${starters || '<p class="news-placeholder">Lineup not yet announced</p>'}
+        ${subs ? `<div style="border-top:1px solid #f1f5f9;margin-top:4px;padding-top:4px"><div style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Bench</div>${subs}</div>` : ''}
+      </div>`;
+    };
+
+    return `<div class="lineup-grid">${col(t1data, team1)}${col(t2data, team2)}</div>`;
+  },
+};
+
+/* ════════════════════════════════════════════════════════════════════
    APP
    ════════════════════════════════════════════════════════════════════ */
 const App = {
   async init() {
     StandingsCalc.recalcAll();
 
-    RenderLayer.renderGroups();
+    // Start on Today tab (already active in HTML)
     RenderLayer.renderToday();
+    RenderLayer.renderGroups();
     BracketRender.render();
     RenderLayer.renderScorers();
     RenderLayer.updateProgress();
@@ -1561,6 +1732,8 @@ const App = {
     document.getElementById('today-matches-wrap').style.display = 'none';
     RenderLayer.renderMatchDetail(matchId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Try to load lineups if API key present
+    if (LineupLayer.getKey()) RenderLayer.refreshLineups(matchId);
   },
 
   backToMatches() {
@@ -1569,6 +1742,22 @@ const App = {
     detail.innerHTML = '';
     detail.style.display = 'none';
     document.getElementById('today-matches-wrap').style.display = '';
+  },
+
+  saveLineupKey(matchId) {
+    const inp = document.getElementById('bdl-key-input');
+    if (!inp) return;
+    const key = inp.value.trim();
+    LineupLayer.setKey(key);
+    if (key) RenderLayer.refreshLineups(matchId);
+    // Re-render to hide the key entry banner
+    const m = STATIC_DATA.matches.find(x => x.id === matchId);
+    if (m) {
+      const t1 = STATIC_DATA.teams[m.team1] || { flag:'🏳' };
+      const t2 = STATIC_DATA.teams[m.team2] || { flag:'🏳' };
+      const body = document.getElementById('lineup-body-' + matchId);
+      if (body) body.innerHTML = RenderLayer._buildLineupBody(m, t1, t2);
+    }
   },
 };
 
