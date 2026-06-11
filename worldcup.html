@@ -1313,24 +1313,51 @@ const RenderLayer = {
   },
 
   async refreshLineups(matchId) {
+    const body = document.getElementById('lineup-body-' + matchId);
+    if (!body) return;
     const m = STATIC_DATA.matches.find(x => x.id === matchId);
     if (!m) return;
     const t1 = STATIC_DATA.teams[m.team1] || { flag:'🏳' };
     const t2 = STATIC_DATA.teams[m.team2] || { flag:'🏳' };
-    const bdlId = STATE.bdlMatchIds && STATE.bdlMatchIds[matchId];
-    const data  = await LineupLayer.fetchLineup(bdlId);
-    if (!data) return;
-    const html = LineupLayer.renderLineupHTML(data, m.team1, m.team2);
-    if (!html) return;
-    const body = document.getElementById('lineup-body-' + matchId);
-    if (body) {
-      body.innerHTML = html + `
-        <p class="news-source" style="margin-top:8px">
-          <a href="https://www.bbc.co.uk/sport/football/world-cup" target="_blank" style="color:#94a3b8;text-decoration:underline">BBC Sport</a>
-          &nbsp;·&nbsp;
-          <a href="https://www.itv.com/sport/football" target="_blank" style="color:#94a3b8;text-decoration:underline">ITV Sport</a>
-        </p>`;
+
+    body.innerHTML = `<p class="news-placeholder" style="text-align:center;padding:10px 0">⏳ Loading lineups…</p>`;
+
+    await LineupLayer.buildMatchMap();
+
+    const bdlId = STATE.bdlMatchIds[matchId];
+    const result = await LineupLayer.fetchLineup(bdlId);
+
+    const watchLinks = (() => {
+      const bc = STATIC_DATA.broadcasters[m.id];
+      if (!bc) return '';
+      const bbc = `<a class="watch-link bbc" href="https://www.bbc.co.uk/sport/football/world-cup" target="_blank">📺 BBC Sport</a>`;
+      const itv = `<a class="watch-link itv" href="https://www.itv.com/sport/football" target="_blank">📺 ITV Sport</a>`;
+      return `<div class="watch-links">${bc === 'BBC & ITV' ? bbc + itv : bc === 'BBC' ? bbc : itv}</div>`;
+    })();
+
+    if (result.status === 'tier') {
+      body.innerHTML = `
+        <p class="news-placeholder" style="color:#d97706">⚠️ Lineup data requires a BALLDONTLIE premium plan. Check team news at:</p>
+        ${watchLinks}`;
+      return;
     }
+    if (result.status === 'auth') {
+      body.innerHTML = `<p class="news-placeholder" style="color:#dc2626">🔑 API key rejected (401/403). Check the key is valid and the domain is allowlisted at balldontlie.io.</p>`;
+      return;
+    }
+    if (result.status === 'no-match-id') {
+      body.innerHTML = `<p class="news-placeholder">Match not yet listed in BALLDONTLIE database. ${watchLinks}</p>`;
+      return;
+    }
+    if (result.status !== 'ok') {
+      body.innerHTML = RenderLayer._buildLineupBody(m, t1, t2);
+      return;
+    }
+
+    const html = LineupLayer.renderLineupHTML(result.data, m.team1, m.team2);
+    body.innerHTML = html
+      ? html + watchLinks
+      : `<p class="news-placeholder">Lineup not yet announced. ${watchLinks}</p>`;
   },
 
   updateLiveBadge() {
@@ -1632,6 +1659,7 @@ const AnimLayer = {
 const LineupLayer = {
   KEY_STORE: 'wc2026_bdl_key',
   BASE: 'https://api.balldontlie.io/fifa/worldcup/v1',
+  _mapBuilt: false,
 
   getKey() { try { return localStorage.getItem(LineupLayer.KEY_STORE) || ''; } catch { return ''; } },
   setKey(k) { try { localStorage.setItem(LineupLayer.KEY_STORE, k.trim()); } catch {} },
@@ -1649,24 +1677,83 @@ const LineupLayer = {
     LineupLayer._reqTimes.push(Date.now());
   },
 
+  /* Normalise BDL team names to match our static data */
+  _normTeam(name) {
+    if (!name) return '';
+    const extra = {
+      'Bosnia & Herzegovina': 'Bosnia-Herzegovina',
+      'Bosnia and Herzegovina': 'Bosnia-Herzegovina',
+      'DR Congo': 'Congo DR',
+      'Congo DR': 'Congo DR',
+      'Democratic Republic of Congo': 'Congo DR',
+      "Côte d'Ivoire": 'Ivory Coast',
+      'Cote d\'Ivoire': 'Ivory Coast',
+      'Korea Republic': 'South Korea',
+      'Republic of Korea': 'South Korea',
+      'Türkiye': 'Turkey',
+      'United States': 'USA',
+    };
+    return extra[name] || DataLayer.norm(name) || name;
+  },
+
+  /* Fetch BDL game list and map to our match IDs — called once */
+  async buildMatchMap() {
+    if (LineupLayer._mapBuilt) return;
+    LineupLayer._mapBuilt = true;
+    const key = LineupLayer.getKey();
+    if (!key) return;
+    await LineupLayer._throttle();
+    try {
+      const r = await fetch(`${LineupLayer.BASE}/games?per_page=200`, {
+        headers: { Authorization: key }
+      });
+      if (!r.ok) { LineupLayer._mapError = r.status; return; }
+      const j = await r.json();
+      for (const g of (j.data || [])) {
+        const gDate = (g.date || '').slice(0, 10);
+        const ht = LineupLayer._normTeam(g.home_team?.name || g.team1?.name || '');
+        const at = LineupLayer._normTeam(g.away_team?.name || g.team2?.name || '');
+        const match = STATIC_DATA.matches.find(m =>
+          m.date === gDate &&
+          ((LineupLayer._normTeam(m.team1) === ht && LineupLayer._normTeam(m.team2) === at) ||
+           (LineupLayer._normTeam(m.team1) === at && LineupLayer._normTeam(m.team2) === ht))
+        );
+        if (match) STATE.bdlMatchIds[match.id] = g.id;
+      }
+    } catch { /* network error — handled downstream */ }
+  },
+
+  /* Returns {status, data} — status: 'ok'|'tier'|'auth'|'no-data'|'error' */
   async fetchLineup(bdlMatchId) {
     const key = LineupLayer.getKey();
-    if (!key || !bdlMatchId) return null;
+    if (!key)        return { status: 'no-key' };
+    if (!bdlMatchId) return { status: 'no-match-id' };
     await LineupLayer._throttle();
     try {
       const r = await fetch(`${LineupLayer.BASE}/match_lineups?game_id=${bdlMatchId}`, {
         headers: { Authorization: key }
       });
-      if (!r.ok) return null;
+      if (r.status === 401 || r.status === 403) return { status: 'auth' };
+      if (r.status === 402 || r.status === 422) return { status: 'tier' };
+      if (!r.ok) return { status: 'error', code: r.status };
       const j = await r.json();
-      return j.data || null;
-    } catch { return null; }
+      const data = j.data || [];
+      return { status: data.length ? 'ok' : 'no-data', data };
+    } catch { return { status: 'error' }; }
   },
 
   renderLineupHTML(lineupData, team1, team2) {
     if (!lineupData || !lineupData.length) return null;
-    const t1data = lineupData.find(l => l.team && (l.team.name === team1 || l.team.abbreviation === team1));
-    const t2data = lineupData.find(l => l.team && (l.team.name === team2 || l.team.abbreviation === team2));
+    const normT1 = LineupLayer._normTeam(team1);
+    const normT2 = LineupLayer._normTeam(team2);
+    const t1data = lineupData.find(l => {
+      const n = LineupLayer._normTeam(l.team?.name || l.team?.abbreviation || '');
+      return n === normT1;
+    });
+    const t2data = lineupData.find(l => {
+      const n = LineupLayer._normTeam(l.team?.name || l.team?.abbreviation || '');
+      return n === normT2;
+    });
     if (!t1data && !t2data) return null;
 
     const playerRow = (p, isSub) => `<div class="lineup-player${isSub ? ' lineup-sub' : ''}">
@@ -1725,6 +1812,9 @@ const App = {
 
     DataLayer.startPolling();
     setInterval(() => RenderLayer.updateProgress(), 60_000);
+
+    // Pre-build BDL game-ID mapping in the background
+    if (LineupLayer.getKey()) LineupLayer.buildMatchMap();
   },
 
   switchTo(id) {
