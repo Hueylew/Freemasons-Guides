@@ -766,23 +766,30 @@ const STATE = {
   lastUpdated:      null,
   fetchError:       false,
   isLive:           false,
-  scores:           {},   // { matchId: {s1,s2,status} }
-  events:           {},   // { matchId: {goals:[...], htScore:[n,n]|null} }
-  standings:        {},   // { 'A': [...rows] }
-  knockoutTeams:    {},   // { '1A':'Mexico', ... }
-  scorers:          [],   // [{name,team,goals}]
+  liveSource:       null,  // 'espn' | 'sofascore' | null
+  liveUpdated:      null,  // ISO timestamp from live JSON
+  scores:           {},    // { matchId: {s1,s2,status,_src} }
+  events:           {},    // { matchId: {goals:[...], htScore:[n,n]|null} }
+  standings:        {},    // { 'A': [...rows] }
+  knockoutTeams:    {},    // { '1A':'Mexico', ... }
+  scorers:          [],    // [{name,team,goals}]
   pollingInterval:  null,
-  prevOrder:        {},   // { groupLetter: [teamName,...] }
-  selectedMatchId:  null, // currently viewed match detail
-  bdlMatchIds:      {},   // { ourMatchId: balldontlieMatchId } — populated from BDL API
-  espnTeamIds:      {},   // { 'Brazil': '205', ... } — populated from ESPN
-  espnRosters:      {},   // { 'Brazil': [{name,jersey,pos}, ...] } — cached per team
+  prevOrder:        {},    // { groupLetter: [teamName,...] }
+  selectedMatchId:  null,  // currently viewed match detail
+  bdlMatchIds:      {},    // { ourMatchId: balldontlieMatchId }
+  espnTeamIds:      {},    // { 'Brazil': '205', ... }
+  espnRosters:      {},    // { 'Brazil': [{name,jersey,pos}, ...] }
 };
 
 /* ════════════════════════════════════════════════════════════════════
    DATA LAYER
    ════════════════════════════════════════════════════════════════════ */
 const DataLayer = {
+  /* Primary: GitHub Actions updates this every 5 min from ESPN during matches.
+     raw.githubusercontent.com sends Access-Control-Allow-Origin: * so it works
+     from file:// protocol with no CORS issues. */
+  LIVE_API: 'https://raw.githubusercontent.com/hueylew/Freemasons-Guides/main/worldcup-live.json',
+  /* Fallback: community-updated after matches end (~hours delay) */
   API: 'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json',
   POLL_MS: 60_000,
 
@@ -852,82 +859,110 @@ const DataLayer = {
     return now >= first - 15 * 60000 && now <= last + 115 * 60000;
   },
 
+  /* Parse one raw match list (openfootball or live JSON format) into STATE */
+  _parseMerge(raw) {
+    const parseGoalList = (list, teamKey) => {
+      if (!Array.isArray(list)) return [];
+      return list.map(g => ({
+        player:  g.name || g.player || '',
+        minute:  g.minute || g.min || '',
+        team:    teamKey,
+        og:      !!(g.owngoal || g.og),
+        penalty: !!(g.penalty || g.pen),
+      }));
+    };
+
+    raw.forEach(rm => {
+      if (!rm.score) return;
+      const ft = rm.score.ft;
+      if (!Array.isArray(ft) || ft.length < 2) return;
+
+      const t1 = DataLayer.norm(rm.team1 && rm.team1.name ? rm.team1.name : rm.team1);
+      const t2 = DataLayer.norm(rm.team2 && rm.team2.name ? rm.team2.name : rm.team2);
+      const match = STATIC_DATA.matches.find(m =>
+        DataLayer.norm(m.team1) === t1 && DataLayer.norm(m.team2) === t2
+      );
+      if (!match) return;
+
+      /* Status: live JSON provides explicit status field; openfootball implies FT */
+      let status = rm.status || (rm.score.et ? 'FT' : 'FT');
+      if (!['FT', 'LIVE', 'HT'].includes(status)) status = 'FT';
+
+      const existing = STATE.scores[match.id];
+      /* Don't overwrite a live source with a stale openfootball FT if already LIVE */
+      if (existing && existing._src === 'live' && status === 'FT' && rm._src !== 'live') return;
+
+      STATE.scores[match.id] = { s1: ft[0], s2: ft[1], status, _src: rm._src || 'ofw' };
+
+      const htScore = (rm.score.ht && rm.score.ht.length === 2) ? [...rm.score.ht] : null;
+      const goals = [
+        ...parseGoalList(rm.goals1, 'team1'),
+        ...parseGoalList(rm.goals2, 'team2'),
+      ].sort((a, b) => (Number(a.minute) || 0) - (Number(b.minute) || 0));
+
+      if (goals.length || htScore) STATE.events[match.id] = { goals, htScore };
+    });
+  },
+
+  /* Build scorer leaderboard from all goal events */
+  _rebuildScorers() {
+    const map = {};
+    STATIC_DATA.matches.forEach(m => {
+      const ev = STATE.events[m.id];
+      if (!ev) return;
+      ev.goals.forEach(g => {
+        if (!g.player || g.og) return;
+        const teamName = g.team === 'team1' ? m.team1 : m.team2;
+        const key = g.player + '|' + teamName;
+        if (!map[key]) map[key] = { name: g.player, team: teamName, goals: 0 };
+        map[key].goals++;
+      });
+    });
+    STATE.scorers = Object.values(map).sort((a, b) => b.goals - a.goals);
+  },
+
   async fetchData() {
+    const prevScores = JSON.stringify(STATE.scores);
+    let anyOk = false;
+
+    /* ── 1. Live JSON (GitHub Actions → ESPN, updated every 5 min) ── */
+    try {
+      const bust = '?t=' + Math.floor(Date.now() / 30000); // cache-bust every 30 s
+      const res = await fetch(DataLayer.LIVE_API + bust, { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        const raw = (json.matches || []).map(m => ({ ...m, _src: 'live' }));
+        if (raw.length) {
+          DataLayer._parseMerge(raw);
+          STATE.liveSource  = json.source || 'live';
+          STATE.liveUpdated = json.updated || null;
+          anyOk = true;
+        }
+      }
+    } catch { /* network error — fall through */ }
+
+    /* ── 2. Openfootball (community-updated after match ends) ── */
     try {
       const res = await fetch(DataLayer.API, { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
+      if (res.ok) {
+        const json = await res.json();
+        const raw  = (json.matches || (json.rounds || []).flatMap(r => r.matches || []))
+                       .map(m => ({ ...m, _src: 'ofw' }));
+        DataLayer._parseMerge(raw);
+        anyOk = true;
+      }
+    } catch { /* network error */ }
 
-      const raw = json.matches || (json.rounds || []).flatMap(r => r.matches || []);
-      const prevScores = JSON.stringify(STATE.scores);
+    DataLayer._rebuildScorers();
 
-      raw.forEach(rm => {
-        if (!rm.score) return;
-        const ft = rm.score.ft;
-        if (!ft || ft.length < 2) return;
-        const t1 = DataLayer.norm(rm.team1 && rm.team1.name ? rm.team1.name : rm.team1);
-        const t2 = DataLayer.norm(rm.team2 && rm.team2.name ? rm.team2.name : rm.team2);
-        const match = STATIC_DATA.matches.find(m =>
-          DataLayer.norm(m.team1) === t1 && DataLayer.norm(m.team2) === t2
-        );
-        if (!match) return;
-
-        // Determine status
-        let status = 'FT';
-        if (rm.score.et) status = 'FT'; // extra time completed
-        STATE.scores[match.id] = { s1: ft[0], s2: ft[1], status };
-
-        // Parse HT score
-        const htScore = (rm.score.ht && rm.score.ht.length === 2) ? [rm.score.ht[0], rm.score.ht[1]] : null;
-
-        // Parse goals — openfootball uses goals1 (team1) and goals2 (team2) arrays
-        const parseGoalList = (list, teamKey) => {
-          if (!Array.isArray(list)) return [];
-          return list.map(g => ({
-            player:  g.name || g.player || '',
-            minute:  g.minute || g.min || '',
-            team:    teamKey,
-            og:      !!(g.owngoal || g.og),
-            penalty: !!(g.penalty || g.pen),
-          }));
-        };
-        const goals = [
-          ...parseGoalList(rm.goals1, 'team1'),
-          ...parseGoalList(rm.goals2, 'team2'),
-        ].sort((a, b) => (Number(a.minute) || 0) - (Number(b.minute) || 0));
-
-        STATE.events[match.id] = { goals, htScore };
-      });
-
-      // Compute scorers from goals across all scored matches
-      // (openfootball has no top-level scorers field — derive from goals1/goals2)
-      const scorerMap = {};
-      raw.forEach(rm => {
-        if (!rm.score) return;
-        const t1name = DataLayer.norm(rm.team1 && rm.team1.name ? rm.team1.name : rm.team1);
-        const t2name = DataLayer.norm(rm.team2 && rm.team2.name ? rm.team2.name : rm.team2);
-        const count = (list, teamName) => {
-          if (!Array.isArray(list)) return;
-          for (const g of list) {
-            if (!g.name || g.owngoal || g.og) continue;
-            const key = g.name + '|' + teamName;
-            if (!scorerMap[key]) scorerMap[key] = { name: g.name, team: teamName, goals: 0 };
-            scorerMap[key].goals++;
-          }
-        };
-        count(rm.goals1, t1name);
-        count(rm.goals2, t2name);
-      });
-      STATE.scorers = Object.values(scorerMap).sort((a, b) => b.goals - a.goals);
-
+    if (anyOk) {
       STATE.lastUpdated = new Date();
       STATE.fetchError  = false;
-      return JSON.stringify(STATE.scores) !== prevScores;
-    } catch (e) {
-      console.warn('[WC2026] Fetch failed:', e.message);
+    } else {
       STATE.fetchError = true;
-      return false;
     }
+
+    return JSON.stringify(STATE.scores) !== prevScores;
   },
 
   startPolling() {
@@ -1421,11 +1456,14 @@ const RenderLayer = {
   updateLastUpdated() {
     const el = document.getElementById('last-updated');
     if (STATE.fetchError) {
-      el.textContent = '⚠ Using offline data';
+      el.textContent = '⚠ Scores offline';
       el.style.color = '#d97706';
     } else if (STATE.lastUpdated) {
-      el.textContent = 'Updated ' + STATE.lastUpdated.toLocaleTimeString();
-      el.style.color = '#94a3b8';
+      const src = STATE.liveSource === 'espn' ? ' · ESPN live'
+                : STATE.liveSource === 'sofascore' ? ' · SofaScore live'
+                : '';
+      el.textContent = 'Updated ' + STATE.lastUpdated.toLocaleTimeString() + src;
+      el.style.color = src ? '#16a34a' : '#94a3b8';
     }
   },
 

@@ -1,0 +1,45 @@
+name: Update World Cup Live Scores
+
+on:
+  schedule:
+    # Every 5 minutes — minimum GitHub Actions cron interval
+    - cron: '*/5 * * * *'
+  workflow_dispatch:   # allow manual trigger from Actions tab
+
+jobs:
+  update-scores:
+    runs-on: ubuntu-latest
+    # Tournament runs Jun 11 – Jul 19 2026; always-on is fine on free tier
+    # (GitHub Actions free tier gives 2,000 min/month; 5-min cron ≈ 288 runs/day
+    #  × 39 days ≈ 11,232 minutes total — well within limits)
+    permissions:
+      contents: write   # needed to commit worldcup-live.json
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests --quiet
+
+      - name: Fetch live scores
+        run: python scripts/fetch_scores.py
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name  "GitHub Actions"
+          git add worldcup-live.json
+          # fetch_scores.py skips writing when no data changes, so staged diff
+          # only appears when scores/goals actually changed.
+          if git diff --staged --quiet; then
+            echo "No score changes to commit."
+          else
+            git commit -m "Live scores $(date -u +'%H:%M UTC')"
+            git push
+          fi
