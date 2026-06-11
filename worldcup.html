@@ -360,6 +360,30 @@
     .watch-link.bbc { background: #c00; color: #fff; }
     .watch-link.itv { background: #d97706; color: #fff; }
 
+    /* ── Squad display ──────────────────────────────────────────── */
+    .squad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 10px; }
+    .squad-team-col h4 {
+      font-size: 11px; font-weight: 700; color: #475569;
+      text-transform: uppercase; letter-spacing: .05em;
+      margin: 0 0 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;
+    }
+    .squad-pos-group { margin-bottom: 8px; }
+    .squad-pos-label {
+      font-size: 9px; font-weight: 700; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: .08em; margin-bottom: 3px;
+    }
+    .squad-player {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: #0f172a; padding: 2px 0;
+    }
+    .squad-jersey {
+      font-family: monospace; font-size: 10px; color: #94a3b8;
+      min-width: 18px; text-align: right;
+    }
+    .squad-source {
+      font-size: 9px; color: #cbd5e1; margin-top: 8px; text-align: right;
+    }
+
     /* ── Bracket ─────────────────────────────────────────────────── */
     .bracket-wrap { display: flex; gap: 0; align-items: flex-start; min-width: 980px; }
     .b-round      { display: flex; flex-direction: column; flex: 1; padding: 0 4px; }
@@ -751,6 +775,8 @@ const STATE = {
   prevOrder:        {},   // { groupLetter: [teamName,...] }
   selectedMatchId:  null, // currently viewed match detail
   bdlMatchIds:      {},   // { ourMatchId: balldontlieMatchId } — populated from BDL API
+  espnTeamIds:      {},   // { 'Brazil': '205', ... } — populated from ESPN
+  espnRosters:      {},   // { 'Brazil': [{name,jersey,pos}, ...] } — cached per team
 };
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1317,15 +1343,8 @@ const RenderLayer = {
     if (!body) return;
     const m = STATIC_DATA.matches.find(x => x.id === matchId);
     if (!m) return;
-    const t1 = STATIC_DATA.teams[m.team1] || { flag:'🏳' };
-    const t2 = STATIC_DATA.teams[m.team2] || { flag:'🏳' };
 
-    body.innerHTML = `<p class="news-placeholder" style="text-align:center;padding:10px 0">⏳ Loading lineups…</p>`;
-
-    await LineupLayer.buildMatchMap();
-
-    const bdlId = STATE.bdlMatchIds[matchId];
-    const result = await LineupLayer.fetchLineup(bdlId);
+    body.innerHTML = `<p class="news-placeholder" style="text-align:center;padding:10px 0">⏳ Loading squad data…</p>`;
 
     const watchLinks = (() => {
       const bc = STATIC_DATA.broadcasters[m.id];
@@ -1335,29 +1354,41 @@ const RenderLayer = {
       return `<div class="watch-links">${bc === 'BBC & ITV' ? bbc + itv : bc === 'BBC' ? bbc : itv}</div>`;
     })();
 
-    if (result.status === 'tier') {
-      body.innerHTML = `
-        <p class="news-placeholder" style="color:#d97706">⚠️ Lineup data requires a BALLDONTLIE premium plan. Check team news at:</p>
-        ${watchLinks}`;
-      return;
-    }
-    if (result.status === 'auth') {
-      body.innerHTML = `<p class="news-placeholder" style="color:#dc2626">🔑 API key rejected (401/403). Check the key is valid and the domain is allowlisted at balldontlie.io.</p>`;
-      return;
-    }
-    if (result.status === 'no-match-id') {
-      body.innerHTML = `<p class="news-placeholder">Match not yet listed in BALLDONTLIE database. ${watchLinks}</p>`;
-      return;
-    }
-    if (result.status !== 'ok') {
-      body.innerHTML = RenderLayer._buildLineupBody(m, t1, t2);
-      return;
-    }
+    /* ── 1. Fetch ESPN squad rosters (no key, runs in parallel with BDL map) ── */
+    await ESPNLayer.buildTeamMap();
+    const [t1players, t2players] = await Promise.all([
+      ESPNLayer.fetchRoster(m.team1),
+      ESPNLayer.fetchRoster(m.team2),
+    ]);
 
-    const html = LineupLayer.renderLineupHTML(result.data, m.team1, m.team2);
-    body.innerHTML = html
-      ? html + watchLinks
-      : `<p class="news-placeholder">Lineup not yet announced. ${watchLinks}</p>`;
+    const espnHtml = ESPNLayer.renderSquadHTML(m.team1, m.team2, t1players, t2players);
+    body.innerHTML = espnHtml + watchLinks;
+
+    /* ── 2. Try BDL for confirmed match-day lineups (replaces squad if available) ── */
+    if (LineupLayer.getKey()) {
+      await LineupLayer.buildMatchMap();
+      const bdlId = STATE.bdlMatchIds[matchId];
+      const result = await LineupLayer.fetchLineup(bdlId);
+
+      if (result.status === 'ok') {
+        const t1 = STATIC_DATA.teams[m.team1] || { flag:'🏳' };
+        const t2 = STATIC_DATA.teams[m.team2] || { flag:'🏳' };
+        const lineupHtml = LineupLayer.renderLineupHTML(result.data, m.team1, m.team2);
+        if (lineupHtml) {
+          body.innerHTML = `
+            <p class="squad-source" style="margin-bottom:8px;color:#16a34a;font-weight:700">✅ Confirmed match lineup</p>
+            ${lineupHtml}
+            ${watchLinks}`;
+          return;
+        }
+      }
+      /* Tier/auth errors — note them below the squad, don't replace it */
+      if (result.status === 'tier') {
+        body.innerHTML += `<p class="squad-source" style="color:#d97706">⚠️ Match lineups need BALLDONTLIE premium</p>`;
+      } else if (result.status === 'auth') {
+        body.innerHTML += `<p class="squad-source" style="color:#dc2626">🔑 BDL key rejected — check domain allowlist</p>`;
+      }
+    }
   },
 
   updateLiveBadge() {
@@ -1652,6 +1683,129 @@ const AnimLayer = {
 };
 
 /* ════════════════════════════════════════════════════════════════════
+   ESPN LAYER  — uses ESPN's undocumented public API (no key required)
+   Provides squad rosters for all 48 teams. Falls back gracefully.
+   Community docs: github.com/pseudo-r/Public-ESPN-API
+   ════════════════════════════════════════════════════════════════════ */
+const ESPNLayer = {
+  BASE: 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world',
+  _mapBuilt: false,
+
+  /* Map ESPN display names → our static team names */
+  _normName(name) {
+    const map = {
+      'United States': 'USA', 'US': 'USA', 'United States of America': 'USA',
+      'Bosnia and Herzegovina': 'Bosnia-Herzegovina',
+      'Bosnia & Herzegovina': 'Bosnia-Herzegovina',
+      'Bosnia-Herzegovina': 'Bosnia-Herzegovina',
+      'DR Congo': 'Congo DR', 'Congo, DR': 'Congo DR',
+      'Democratic Republic of Congo': 'Congo DR',
+      "Côte d'Ivoire": 'Ivory Coast', "Cote d'Ivoire": 'Ivory Coast',
+      'Korea Republic': 'South Korea', 'Republic of Korea': 'South Korea',
+      'Türkiye': 'Turkey',
+      'Curacao': 'Curaçao',
+    };
+    return map[name] || DataLayer.norm(name) || name;
+  },
+
+  /* Fetch team list and build { ourName → espnId } map */
+  async buildTeamMap() {
+    if (ESPNLayer._mapBuilt) return;
+    ESPNLayer._mapBuilt = true;
+    try {
+      const r = await fetch(`${ESPNLayer.BASE}/teams?limit=100`);
+      if (!r.ok) return;
+      const j = await r.json();
+      const teams = (j.sports?.[0]?.leagues?.[0]?.teams) || j.teams || [];
+      for (const entry of teams) {
+        const t = entry.team || entry;
+        const ourName = ESPNLayer._normName(t.displayName || t.name || '');
+        if (ourName && t.id) STATE.espnTeamIds[ourName] = String(t.id);
+      }
+    } catch { /* network blocked — no-op */ }
+  },
+
+  /* Fetch and cache roster for one team, return player array */
+  async fetchRoster(teamName) {
+    if (STATE.espnRosters[teamName]) return STATE.espnRosters[teamName];
+    const id = STATE.espnTeamIds[teamName];
+    if (!id) return null;
+    try {
+      const r = await fetch(`${ESPNLayer.BASE}/teams/${id}/roster`);
+      if (!r.ok) return null;
+      const j = await r.json();
+      /* ESPN may return athletes directly or nested under positions */
+      let raw = j.athletes || j.roster || [];
+      /* Some responses group by position: [{position:'...', items:[...]}] */
+      if (raw.length && raw[0].items) {
+        raw = raw.flatMap(g => (g.items || []).map(p => ({
+          ...p, _posGroup: g.position || g.displayName || ''
+        })));
+      }
+      const players = raw.map(p => ({
+        name:    p.displayName || p.fullName || p.shortName || '',
+        jersey:  p.jersey || p.jerseyNumber || '',
+        pos:     p.position?.abbreviation || p.position?.displayName || p._posGroup || '',
+        posLong: p.position?.displayName || p._posGroup || '',
+      })).filter(p => p.name);
+      STATE.espnRosters[teamName] = players;
+      return players;
+    } catch { return null; }
+  },
+
+  /* Render a two-column squad grid for team1 and team2 */
+  renderSquadHTML(t1name, t2name, t1players, t2players) {
+    const POS_ORDER = ['GK','G','GKP','DF','DEF','D','MF','MID','M','FW','FWD','F','ATT'];
+    const POS_LABEL = {
+      GK:'Goalkeepers', G:'Goalkeepers', GKP:'Goalkeepers',
+      DF:'Defenders', DEF:'Defenders', D:'Defenders',
+      MF:'Midfielders', MID:'Midfielders', M:'Midfielders',
+      FW:'Forwards', FWD:'Forwards', F:'Forwards', ATT:'Forwards',
+    };
+
+    const col = (teamName, players) => {
+      if (!players || !players.length) {
+        return `<div class="squad-team-col">
+          <h4>${teamName}</h4>
+          <p class="news-placeholder">Squad not available</p>
+        </div>`;
+      }
+      /* Group by position */
+      const groups = {};
+      for (const p of players) {
+        const key = p.pos.toUpperCase().slice(0,3) || 'OTH';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(p);
+      }
+      /* Sort groups by POS_ORDER */
+      const sortedKeys = Object.keys(groups).sort((a, b) => {
+        const ai = POS_ORDER.indexOf(a), bi = POS_ORDER.indexOf(b);
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      });
+      const rows = sortedKeys.map(k => {
+        const label = POS_LABEL[k] || k;
+        const pRows = groups[k].sort((a,b) => (Number(a.jersey)||99) - (Number(b.jersey)||99))
+          .map(p => `<div class="squad-player">
+            <span class="squad-jersey">${p.jersey}</span>
+            <span>${p.name}</span>
+          </div>`).join('');
+        return `<div class="squad-pos-group">
+          <div class="squad-pos-label">${label}</div>
+          ${pRows}
+        </div>`;
+      }).join('');
+      return `<div class="squad-team-col"><h4>${teamName}</h4>${rows}</div>`;
+    };
+
+    return `<div class="squad-grid">
+      ${col(t1name, t1players)}
+      ${col(t2name, t2players)}
+    </div>
+    <p class="squad-source">Squad data via ESPN · Lineups announced ~1h before kick-off</p>`;
+  },
+};
+
+/* ════════════════════════════════════════════════════════════════════
    LINEUP LAYER  — uses BALLDONTLIE free API (api key required)
    Falls back gracefully when no key is available.
    API docs: https://fifa.balldontlie.io/
@@ -1813,7 +1967,8 @@ const App = {
     DataLayer.startPolling();
     setInterval(() => RenderLayer.updateProgress(), 60_000);
 
-    // Pre-build BDL game-ID mapping in the background
+    // Pre-fetch ESPN team IDs and BDL game map in the background
+    ESPNLayer.buildTeamMap();
     if (LineupLayer.getKey()) LineupLayer.buildMatchMap();
   },
 
