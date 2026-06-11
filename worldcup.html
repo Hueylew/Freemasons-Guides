@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>World Cup 2026 · Live Tracker</title>
   <meta name="description" content="Track every match, group standing, and bracket result from the 2026 FIFA World Cup.">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { theme: { extend: {} } }
-  </script>
   <style>
     * { box-sizing: border-box; }
 
@@ -19,6 +15,15 @@
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       min-height: 100vh;
       margin: 0;
+    }
+
+    /* Button normalisation (no CSS framework is loaded) */
+    button {
+      font-family: inherit;
+      font-size: 100%;
+      margin: 0;
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     /* ── Scrollbars ─────────────────────────────────────────────── */
@@ -58,29 +63,27 @@
       padding: 10px 1rem;
       display: flex; flex-wrap: wrap; gap: 6px;
     }
-    /* Explicit nav-tab styles — !important prevents Tailwind CDN interference */
     button.nav-tab {
-      padding: 8px 22px !important; border-radius: 99px !important;
-      font-size: 13px !important; font-weight: 700 !important;
-      font-family: inherit !important;
-      border: 1.5px solid #cbd5e1 !important;
-      color: #334155 !important;
-      cursor: pointer !important;
-      background: #f8fafc !important;
-      transition: all .18s !important;
-      white-space: nowrap !important;
-      line-height: 1.4 !important;
+      padding: 8px 22px; border-radius: 99px;
+      font-size: 13px; font-weight: 700;
+      border: 1.5px solid #cbd5e1;
+      color: #334155;
+      cursor: pointer;
+      background: #f8fafc;
+      transition: all .18s;
+      white-space: nowrap;
+      line-height: 1.4;
     }
     button.nav-tab.active {
-      background: #16a34a !important;
-      color: #ffffff !important;
-      border-color: #16a34a !important;
-      box-shadow: 0 2px 6px rgba(22,163,74,.35) !important;
+      background: #16a34a;
+      color: #ffffff;
+      border-color: #16a34a;
+      box-shadow: 0 2px 6px rgba(22,163,74,.35);
     }
     button.nav-tab:hover:not(.active) {
-      background: #e2e8f0 !important;
-      color: #0f172a !important;
-      border-color: #94a3b8 !important;
+      background: #e2e8f0;
+      color: #0f172a;
+      border-color: #94a3b8;
     }
 
     /* ── Live badge ──────────────────────────────────────────────── */
