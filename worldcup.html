@@ -1690,6 +1690,7 @@ const AnimLayer = {
 const ESPNLayer = {
   BASE: 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world',
   _mapBuilt: false,
+  _buildPromise: null,
 
   /* Map ESPN display names → our static team names */
   _normName(name) {
@@ -1708,31 +1709,34 @@ const ESPNLayer = {
     return map[name] || DataLayer.norm(name) || name;
   },
 
-  /* Fetch team list and build { ourName → espnId } map */
-  async buildTeamMap() {
-    if (ESPNLayer._mapBuilt) return;
-    ESPNLayer._mapBuilt = true;
-    try {
-      const r = await fetch(`${ESPNLayer.BASE}/teams?limit=100`);
-      if (!r.ok) return;
-      const j = await r.json();
-      const teams = (j.sports?.[0]?.leagues?.[0]?.teams) || j.teams || [];
-      for (const entry of teams) {
-        const t = entry.team || entry;
-        const ourName = ESPNLayer._normName(t.displayName || t.name || '');
-        if (ourName && t.id) STATE.espnTeamIds[ourName] = String(t.id);
-      }
-    } catch { /* network blocked — no-op */ }
+  /* Fetch team list and build { ourName → espnId } map.
+     Returns the same Promise if called concurrently (no race condition). */
+  buildTeamMap() {
+    if (ESPNLayer._buildPromise) return ESPNLayer._buildPromise;
+    ESPNLayer._buildPromise = (async () => {
+      try {
+        const r = await fetch(`${ESPNLayer.BASE}/teams?limit=100`);
+        if (!r.ok) { ESPNLayer._lastErr = `ESPN teams ${r.status}`; return; }
+        const j = await r.json();
+        const teams = (j.sports?.[0]?.leagues?.[0]?.teams) || j.teams || [];
+        for (const entry of teams) {
+          const t = entry.team || entry;
+          const ourName = ESPNLayer._normName(t.displayName || t.name || '');
+          if (ourName && t.id) STATE.espnTeamIds[ourName] = String(t.id);
+        }
+      } catch (e) { ESPNLayer._lastErr = String(e); }
+    })();
+    return ESPNLayer._buildPromise;
   },
 
   /* Fetch and cache roster for one team, return player array */
   async fetchRoster(teamName) {
     if (STATE.espnRosters[teamName]) return STATE.espnRosters[teamName];
     const id = STATE.espnTeamIds[teamName];
-    if (!id) return null;
+    if (!id) return { _err: `No ESPN ID for "${teamName}" (map has ${Object.keys(STATE.espnTeamIds).length} entries${ESPNLayer._lastErr ? '; ' + ESPNLayer._lastErr : ''})` };
     try {
       const r = await fetch(`${ESPNLayer.BASE}/teams/${id}/roster`);
-      if (!r.ok) return null;
+      if (!r.ok) return { _err: `ESPN roster HTTP ${r.status}` };
       const j = await r.json();
       /* ESPN may return athletes directly or nested under positions */
       let raw = j.athletes || j.roster || [];
@@ -1748,9 +1752,10 @@ const ESPNLayer = {
         pos:     p.position?.abbreviation || p.position?.displayName || p._posGroup || '',
         posLong: p.position?.displayName || p._posGroup || '',
       })).filter(p => p.name);
+      if (!players.length) return { _err: `ESPN returned 0 players (keys: ${Object.keys(j).join(',')})` };
       STATE.espnRosters[teamName] = players;
       return players;
-    } catch { return null; }
+    } catch (e) { return { _err: String(e) }; }
   },
 
   /* Render a two-column squad grid for team1 and team2 */
@@ -1764,10 +1769,11 @@ const ESPNLayer = {
     };
 
     const col = (teamName, players) => {
-      if (!players || !players.length) {
+      if (!players || players._err || !players.length) {
+        const msg = players?._err || 'Squad not available';
         return `<div class="squad-team-col">
           <h4>${teamName}</h4>
-          <p class="news-placeholder">Squad not available</p>
+          <p class="news-placeholder" style="font-size:10px;word-break:break-all">${msg}</p>
         </div>`;
       }
       /* Group by position */
@@ -2005,8 +2011,7 @@ const App = {
     document.getElementById('today-matches-wrap').style.display = 'none';
     RenderLayer.renderMatchDetail(matchId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    // Try to load lineups if API key present
-    if (LineupLayer.getKey()) RenderLayer.refreshLineups(matchId);
+    RenderLayer.refreshLineups(matchId); // ESPN needs no key; BDL layers on top if key present
   },
 
   backToMatches() {
